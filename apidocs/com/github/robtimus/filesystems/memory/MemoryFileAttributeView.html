@@ -100,15 +100,15 @@ var activeTableTab = "activeTableTab";
 <li class="blockList">
 <dl>
 <dt>All Superinterfaces:</dt>
-<dd><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/AttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">AttributeView</a>, <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">BasicFileAttributeView</a>, <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/FileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">FileAttributeView</a></dd>
+<dd><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/AttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">AttributeView</a>, <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">BasicFileAttributeView</a>, <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/FileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">FileAttributeView</a></dd>
 </dl>
 <hr>
 <br>
 <pre>public interface <span class="typeNameLabel">MemoryFileAttributeView</span>
-extends <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">BasicFileAttributeView</a></pre>
+extends <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">BasicFileAttributeView</a></pre>
 <div class="block">A file attribute view that provides a view of the in-memory file attributes.
  <p>
- A <code>MemoryFileAttributeView</code> is a <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute"><code>BasicFileAttributeView</code></a> that additionally supports access to the set of in-memory attribute flags
+ A <code>MemoryFileAttributeView</code> is a <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute"><code>BasicFileAttributeView</code></a> that additionally supports access to the set of in-memory attribute flags
  that are used to indicate if the file is read-only, or hidden.
  <p>
  Where dynamic access to file attributes is required, the attributes supported by this attribute view are as defined by
@@ -116,15 +116,15 @@ extends <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribut
  <blockquote>
  <table border="0" cellspacing="0" cellpadding="3" summary="Table columns">
    <tr><th class="colFirst">Name</th><th class="colLast">Type</th></tr>
-   <tr class="altColor"><td class="colFirst">readOnly</td><td class="colLast"><a href="http://docs.oracle.com/javase/7/docs/api/java/lang/Boolean.html?is-external=true" title="class or interface in java.lang"><code>Boolean</code></a></td></tr>
-   <tr class="rowColor"><td class="colFirst">hidden</td><td class="colLast"><a href="http://docs.oracle.com/javase/7/docs/api/java/lang/Boolean.html?is-external=true" title="class or interface in java.lang"><code>Boolean</code></a></td></tr>
+   <tr class="altColor"><td class="colFirst">readOnly</td><td class="colLast"><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Boolean.html?is-external=true" title="class or interface in java.lang"><code>Boolean</code></a></td></tr>
+   <tr class="rowColor"><td class="colFirst">hidden</td><td class="colLast"><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Boolean.html?is-external=true" title="class or interface in java.lang"><code>Boolean</code></a></td></tr>
  </table>
  </blockquote>
- The <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/Files.html?is-external=true#getAttribute-java.nio.file.Path-java.lang.String-java.nio.file.LinkOption...-" title="class or interface in java.nio.file"><code>getAttribute</code></a> method may be used to read any of these attributes, or any of the attributes defined by
- <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute"><code>BasicFileAttributeView</code></a> as if by invoking the <a href="../../../../../com/github/robtimus/filesystems/memory/MemoryFileAttributeView.html#readAttributes--"><code>readAttributes()</code></a> method.
+ The <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Files.html?is-external=true#getAttribute-java.nio.file.Path-java.lang.String-java.nio.file.LinkOption...-" title="class or interface in java.nio.file"><code>getAttribute</code></a> method may be used to read any of these attributes, or any of the attributes defined by
+ <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute"><code>BasicFileAttributeView</code></a> as if by invoking the <a href="../../../../../com/github/robtimus/filesystems/memory/MemoryFileAttributeView.html#readAttributes--"><code>readAttributes()</code></a> method.
  <p>
- The <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/Files.html?is-external=true#setAttribute-java.nio.file.Path-java.lang.String-java.lang.Object-java.nio.file.LinkOption...-" title="class or interface in java.nio.file"><code>setAttribute</code></a> method may be used to update the file's last modified time, last access time or create time attributes
- as defined by <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute"><code>BasicFileAttributeView</code></a>. It may also be used to update the in-memory attributes as if by invoking the
+ The <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Files.html?is-external=true#setAttribute-java.nio.file.Path-java.lang.String-java.lang.Object-java.nio.file.LinkOption...-" title="class or interface in java.nio.file"><code>setAttribute</code></a> method may be used to update the file's last modified time, last access time or create time attributes
+ as defined by <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute"><code>BasicFileAttributeView</code></a>. It may also be used to update the in-memory attributes as if by invoking the
  <a href="../../../../../com/github/robtimus/filesystems/memory/MemoryFileAttributeView.html#setReadOnly-boolean-"><code>setReadOnly</code></a>, and <a href="../../../../../com/github/robtimus/filesystems/memory/MemoryFileAttributeView.html#setHidden-boolean-"><code>setHidden</code></a> methods respectively.</div>
 <dl>
 <dt><span class="simpleTagLabel">Author:</span></dt>
@@ -149,7 +149,7 @@ extends <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribut
 <th class="colLast" scope="col">Method and Description</th>
 </tr>
 <tr id="i0" class="altColor">
-<td class="colFirst"><code><a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a></code></td>
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/memory/MemoryFileAttributeView.html#name--">name</a></span>()</code>
 <div class="block">Returns the name of the attribute view.</div>
 </td>
@@ -175,8 +175,8 @@ extends <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribut
 <li class="blockList"><a name="methods.inherited.from.class.java.nio.file.attribute.BasicFileAttributeView">
 <!--   -->
 </a>
-<h3>Methods inherited from interface&nbsp;java.nio.file.attribute.<a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">BasicFileAttributeView</a></h3>
-<code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true#setTimes-java.nio.file.attribute.FileTime-java.nio.file.attribute.FileTime-java.nio.file.attribute.FileTime-" title="class or interface in java.nio.file.attribute">setTimes</a></code></li>
+<h3>Methods inherited from interface&nbsp;java.nio.file.attribute.<a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">BasicFileAttributeView</a></h3>
+<code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true#setTimes-java.nio.file.attribute.FileTime-java.nio.file.attribute.FileTime-java.nio.file.attribute.FileTime-" title="class or interface in java.nio.file.attribute">setTimes</a></code></li>
 </ul>
 </li>
 </ul>
@@ -198,13 +198,13 @@ extends <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribut
 <ul class="blockList">
 <li class="blockList">
 <h4>name</h4>
-<pre><a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;name()</pre>
+<pre><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;name()</pre>
 <div class="block">Returns the name of the attribute view. Attribute views of this type have the name <code>"memory"</code>.</div>
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/AttributeView.html?is-external=true#name--" title="class or interface in java.nio.file.attribute">name</a></code>&nbsp;in interface&nbsp;<code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/AttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">AttributeView</a></code></dd>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/AttributeView.html?is-external=true#name--" title="class or interface in java.nio.file.attribute">name</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/AttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">AttributeView</a></code></dd>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true#name--" title="class or interface in java.nio.file.attribute">name</a></code>&nbsp;in interface&nbsp;<code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">BasicFileAttributeView</a></code></dd>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true#name--" title="class or interface in java.nio.file.attribute">name</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">BasicFileAttributeView</a></code></dd>
 </dl>
 </li>
 </ul>
@@ -215,12 +215,12 @@ extends <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribut
 <li class="blockList">
 <h4>readAttributes</h4>
 <pre><a href="../../../../../com/github/robtimus/filesystems/memory/MemoryFileAttributes.html" title="interface in com.github.robtimus.filesystems.memory">MemoryFileAttributes</a>&nbsp;readAttributes()
-                             throws <a href="http://docs.oracle.com/javase/7/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></pre>
+                             throws <a href="https://docs.oracle.com/javase/8/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></pre>
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true#readAttributes--" title="class or interface in java.nio.file.attribute">readAttributes</a></code>&nbsp;in interface&nbsp;<code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">BasicFileAttributeView</a></code></dd>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true#readAttributes--" title="class or interface in java.nio.file.attribute">readAttributes</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html?is-external=true" title="class or interface in java.nio.file.attribute">BasicFileAttributeView</a></code></dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="http://docs.oracle.com/javase/7/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></code></dd>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></code></dd>
 </dl>
 </li>
 </ul>
@@ -231,13 +231,13 @@ extends <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribut
 <li class="blockList">
 <h4>setReadOnly</h4>
 <pre>void&nbsp;setReadOnly(boolean&nbsp;value)
-          throws <a href="http://docs.oracle.com/javase/7/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></pre>
+          throws <a href="https://docs.oracle.com/javase/8/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></pre>
 <div class="block">Updates the value of the read-only attribute.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>value</code> - The new value of the attribute.</dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="http://docs.oracle.com/javase/7/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></code> - If an I/O error occurs.</dd>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></code> - If an I/O error occurs.</dd>
 </dl>
 </li>
 </ul>
@@ -248,13 +248,13 @@ extends <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/attribut
 <li class="blockList">
 <h4>setHidden</h4>
 <pre>void&nbsp;setHidden(boolean&nbsp;value)
-        throws <a href="http://docs.oracle.com/javase/7/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></pre>
+        throws <a href="https://docs.oracle.com/javase/8/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></pre>
 <div class="block">Updates the value of the hidden attribute.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>value</code> - The new value of the attribute.</dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="http://docs.oracle.com/javase/7/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></code> - If an I/O error occurs.</dd>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io">IOException</a></code> - If an I/O error occurs.</dd>
 </dl>
 </li>
 </ul>

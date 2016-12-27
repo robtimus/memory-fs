@@ -62,7 +62,7 @@
 <p>The <tt>memory-fs</tt> library provides an in-memory NIO.2 file system. It can be used where a NIO.2 file system implementation is required, without needing to write anything to disk.</p>
 <div class="section">
 <h2><a name="Creating_paths"></a>Creating paths</h2>
-<p>If the in-memory file system library is available on the class path, it will register a <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/spi/FileSystemProvider.html">FileSystemProvider</a> for scheme <tt>memory</tt>. This means that, to create a <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a> for the in-memory file system, you can simply use <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/Paths.html#get-java.net.URI-">Paths.get</a>:</p>
+<p>If the in-memory file system library is available on the class path, it will register a <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/spi/FileSystemProvider.html">FileSystemProvider</a> for scheme <tt>memory</tt>. This means that, to create a <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a> for the in-memory file system, you can simply use <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Paths.html#get-java.net.URI-">Paths.get</a>:</p>
 
 <div class="source">
 <div class="source"><pre class="prettyprint">Path path = Paths.get(URI.create(&quot;memory:/foo/bar&quot;));
@@ -71,7 +71,7 @@
 <h2><a name="Attributes"></a>Attributes</h2>
 <div class="section">
 <h3><a name="File_attributes"></a>File attributes</h3>
-<p>The in-memory file system fully supports the attributes defined in <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html">BasicFileAttributeView</a> and <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributes.html">BasicFileAttributes</a>. These are available both with and without prefix <tt>basic:</tt>.</p>
+<p>The in-memory file system fully supports the attributes defined in <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html">BasicFileAttributeView</a> and <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributes.html">BasicFileAttributes</a>. These are available both with and without prefix <tt>basic:</tt>.</p>
 <p>Besides these attributes, the in-memory file system provides two extra attributes:</p>
 
 <ul>
@@ -80,20 +80,20 @@
   
 <li><tt>hidden</tt>: files and directories can be hidden, allowing the hidden attribute to be used for filtering.</li>
 </ul>
-<p>These attributes are accessible through interfaces <a href="apidocs/com/github/robtimus/filesystems/memory/MemoryFileAttributeView.html">MemoryFileAttributeView</a> and <a href="apidocs/com/github/robtimus/filesystems/memory/MemoryFileAttributes.html">MemoryFileAttributes</a> (which extend <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html">BasicFileAttributeView</a> and <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributes.html">BasicFileAttributes</a> respectively), or with prefix <tt>memory:</tt> (e.g. <tt>memory:hidden</tt>). The basic attributes are also available using prefix <tt>memory:</tt>.</p></div>
+<p>These attributes are accessible through interfaces <a href="apidocs/com/github/robtimus/filesystems/memory/MemoryFileAttributeView.html">MemoryFileAttributeView</a> and <a href="apidocs/com/github/robtimus/filesystems/memory/MemoryFileAttributes.html">MemoryFileAttributes</a> (which extend <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributeView.html">BasicFileAttributeView</a> and <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/BasicFileAttributes.html">BasicFileAttributes</a> respectively), or with prefix <tt>memory:</tt> (e.g. <tt>memory:hidden</tt>). The basic attributes are also available using prefix <tt>memory:</tt>.</p></div>
 <div class="section">
 <h3><a name="File_store_attributes"></a>File store attributes</h3>
-<p>When calling <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getAttribute-java.lang.String-">getAttribute</a> on a file store, the following attributes are supported:</p>
+<p>When calling <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getAttribute-java.lang.String-">getAttribute</a> on a file store, the following attributes are supported:</p>
 
 <ul>
   
-<li><tt>totalSpace</tt>: returns the same value as the <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getTotalSpace--">getTotalSpace</a> method, based on the contents of the in-memory file system.</li>
+<li><tt>totalSpace</tt>: returns the same value as the <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getTotalSpace--">getTotalSpace</a> method, based on the contents of the in-memory file system.</li>
   
-<li><tt>usableSpace</tt>: returns the same value as the <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getUsableSpace--">getUsableSpace</a> method, which is based on the maximum amount of memory available to the JVM.</li>
+<li><tt>usableSpace</tt>: returns the same value as the <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getUsableSpace--">getUsableSpace</a> method, which is based on the maximum amount of memory available to the JVM.</li>
   
-<li><tt>unallocatedSpace</tt>: returns the same value as the <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getUnallocatedSpace--">getUnallocatedSpace</a> method, which is based on the amount of free memory in the JVM.</li>
+<li><tt>unallocatedSpace</tt>: returns the same value as the <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getUnallocatedSpace--">getUnallocatedSpace</a> method, which is based on the amount of free memory in the JVM.</li>
 </ul>
-<p>There is no support for <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/FileStoreAttributeView.html">FileStoreAttributeView</a>. Calling <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getFileStoreAttributeView-java.lang.Class-">getFileStoreAttributeView</a> on a file store will simply return <tt>null</tt>.</p></div></div>
+<p>There is no support for <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/FileStoreAttributeView.html">FileStoreAttributeView</a>. Calling <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getFileStoreAttributeView-java.lang.Class-">getFileStoreAttributeView</a> on a file store will simply return <tt>null</tt>.</p></div></div>
 <div class="section">
 <h2><a name="Thread_safety"></a>Thread safety</h2>
 <p>Most operations are atomic and thread safe. Concurrent access to files using streams or channels may give unexpected results though. If concurrent access to files is necessary, it is suggested to use proper synchronisation.</p></div>
@@ -107,13 +107,13 @@
   
 <li>There is no support for symbolic or hard links.</li>
   
-<li>Files are never executable. Calling <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/spi/FileSystemProvider.html#checkAccess-java.nio.file.Path-java.nio.file.AccessMode...-">checkAccess</a> on a file with <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/AccessMode.html#EXECUTE">AccessMode.EXECUTE</a> will cause an <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/AccessDeniedException.html">AccessDeniedException</a> to be thrown.</li>
+<li>Files are never executable. Calling <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/spi/FileSystemProvider.html#checkAccess-java.nio.file.Path-java.nio.file.AccessMode...-">checkAccess</a> on a file with <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/AccessMode.html#EXECUTE">AccessMode.EXECUTE</a> will cause an <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/AccessDeniedException.html">AccessDeniedException</a> to be thrown.</li>
   
 <li>There is only one file system. Any attempt to create a new one will fail.</li>
   
-<li>There is no support for <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/UserPrincipalLookupService.html">UserPrincipalLookupService</a>.</li>
+<li>There is no support for <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/UserPrincipalLookupService.html">UserPrincipalLookupService</a>.</li>
   
-<li>There is no support for <a class="externalLink" href="http://docs.oracle.com/javase/8/docs/api/java/nio/file/WatchService.html">WatchService</a>.</li>
+<li>There is no support for <a class="externalLink" href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/WatchService.html">WatchService</a>.</li>
 </ul></div>
         </div>
       </div>
