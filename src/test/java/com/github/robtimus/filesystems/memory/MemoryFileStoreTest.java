@@ -78,37 +78,6 @@ public class MemoryFileStoreTest {
         return new MemoryPath(fs, path);
     }
 
-    // MemoryFileStore.getTotalSpace
-
-    @Test
-    public void testGetTotalSpace() throws IOException {
-        assertEquals(0, fileStore.getTotalSpace());
-
-        Directory foo = (Directory) root.add("foo", new Directory());
-
-        assertEquals(0, fileStore.getTotalSpace());
-
-        File bar = (File) foo.add("bar", new File());
-
-        assertEquals(0, fileStore.getTotalSpace());
-
-        bar.setContent(new byte[1024]);
-
-        assertEquals(1024, fileStore.getTotalSpace());
-
-        File baz = (File) root.add("baz", new File());
-
-        assertEquals(1024, fileStore.getTotalSpace());
-
-        baz.setContent(new byte[512]);
-
-        assertEquals(1536, fileStore.getTotalSpace());
-
-        baz.setContent(new byte[2048]);
-
-        assertEquals(3072, fileStore.getTotalSpace());
-    }
-
     // MemoryFileStore.toRealPath
 
     @Test
