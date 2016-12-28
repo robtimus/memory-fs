@@ -251,7 +251,7 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
      * Reads a set of file attributes as a bulk operation.
      * This method works in exactly the manner specified by the {@link Files#readAttributes(Path, String, LinkOption...)} method.
      * <p>
-     * This provider supports views {@code basic} and {code memory}, where {@code basic} will be used if no view is given.
+     * This provider supports views {@code basic} and {@code memory}, where {@code basic} will be used if no view is given.
      * All other views will result in an {@link UnsupportedOperationException} to be thrown.
      */
     @Override
@@ -263,7 +263,7 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
      * Sets the value of a file attribute.
      * This method works in exactly the manner specified by the {@link Files#setAttribute(Path, String, Object, LinkOption...)} method.
      * <p>
-     * This provider supports views {@code basic} and {code memory}, where {@code basic} will be used if no view is given.
+     * This provider supports views {@code basic} and {@code memory}, where {@code basic} will be used if no view is given.
      * All other views will result in an {@link UnsupportedOperationException} to be thrown.
      */
     @Override

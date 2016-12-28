@@ -91,12 +91,12 @@ class MemoryFileStore extends FileStore {
 
     @Override
     public synchronized long getTotalSpace() throws IOException {
-        return rootNode.getTotalSize();
+        return Runtime.getRuntime().maxMemory();
     }
 
     @Override
     public long getUsableSpace() throws IOException {
-        return Runtime.getRuntime().maxMemory();
+        return Runtime.getRuntime().freeMemory();
     }
 
     @Override
@@ -691,8 +691,6 @@ class MemoryFileStore extends FileStore {
 
         abstract long getSize();
 
-        abstract long getTotalSize();
-
         abstract Node copy(boolean copyAttributes);
 
         synchronized void copyAttributes(Node target) {
@@ -871,15 +869,6 @@ class MemoryFileStore extends FileStore {
         }
 
         @Override
-        synchronized long getTotalSize() {
-            long size = 0;
-            for (Node node : children.values()) {
-                size += node.getTotalSize();
-            }
-            return size;
-        }
-
-        @Override
         synchronized Node copy(boolean copyAttributes) {
             Directory copy = new Directory();
             // children aren't copied, as specified by the contract of Files.copy
@@ -940,11 +929,6 @@ class MemoryFileStore extends FileStore {
         @Override
         synchronized long getSize() {
             return content.size();
-        }
-
-        @Override
-        long getTotalSize() {
-            return getSize();
         }
 
         @Override
