@@ -71,7 +71,7 @@
 
     <version.java>1.7</version.java>
 
-    <version.fs-core>1.0</version.fs-core>
+    <version.fs-core>1.2</version.fs-core>
     <version.hamcrest>1.3</version.hamcrest>
     <version.junit>4.12</version.junit>
     <version.mockito>1.10.19</version.mockito>
@@ -79,8 +79,8 @@
     <version.plugin.antrun>1.8</version.plugin.antrun>
     <version.plugin.assembly>3.0.0</version.plugin.assembly>
     <version.plugin.clean>3.0.0</version.plugin.clean>
-    <version.plugin.compiler>3.6.0</version.plugin.compiler>
-    <version.plugin.dependency>2.10</version.plugin.dependency>
+    <version.plugin.compiler>3.6.1</version.plugin.compiler>
+    <version.plugin.dependency>3.0.1</version.plugin.dependency>
     <version.plugin.deploy>2.8.2</version.plugin.deploy>
     <version.plugin.gpg>1.6</version.plugin.gpg>
     <version.plugin.nexus-staging>1.6.8</version.plugin.nexus-staging>
@@ -93,7 +93,7 @@
     <version.plugin.resources>3.0.2</version.plugin.resources>
     <version.plugin.site>3.6</version.plugin.site>
     <version.plugin.source>3.0.1</version.plugin.source>
-    <version.plugin.surefire>2.19.1</version.plugin.surefire>
+    <version.plugin.surefire>2.20</version.plugin.surefire>
   </properties>
 
   <dependencies>
