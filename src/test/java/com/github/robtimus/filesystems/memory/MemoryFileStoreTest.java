@@ -2511,4 +2511,16 @@ public class MemoryFileStoreTest {
     public void testSetAttributeNonExisting() throws IOException {
         fileStore.setAttribute(createPath("/foo"), "memory:hidden", true);
     }
+
+    @Test
+    public void testClear() {
+        root.add("foo", new Directory());
+        root.add("bar", new File());
+
+        assertFalse(root.isEmpty());
+
+        fileStore.clear();
+
+        assertTrue(root.isEmpty());
+    }
 }

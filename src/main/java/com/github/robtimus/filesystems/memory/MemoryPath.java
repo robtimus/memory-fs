@@ -153,6 +153,14 @@ final class MemoryPath extends SimpleAbstractPath {
         return fs.toString(this);
     }
 
+    byte[] getContent() throws IOException {
+        return fs.getContent(this);
+    }
+
+    void setContent(byte[] content) throws IOException {
+        fs.setContent(this, content);
+    }
+
     InputStream newInputStream(OpenOption... options) throws IOException {
         return fs.newInputStream(this, options);
     }

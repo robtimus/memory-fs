@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.ProviderMismatchException;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -61,6 +62,7 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
         this(MemoryFileStore.INSTANCE);
     }
 
+    // package private for test purposes
     MemoryFileSystemProvider(MemoryFileStore fileStore) {
         fs = new MemoryFileSystem(this, fileStore);
     }
@@ -271,11 +273,92 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
         toMemoryPath(path).setAttribute(attribute, value, options);
     }
 
+    /**
+     * Returns the content of an existing file. This method is shorthand for the following: <pre>
+     * URI uri = URI.create("memory:" + path);
+     * return getContent(Paths.get(uri));</pre>
+     *
+     * @param path The path to the file to return the content of.
+     * @return The content of the given file.
+     * @throws NullPointerException If the given path is {@code null}.
+     * @throws IllegalArgumentException If the path does not lead to a valid URI.
+     * @throws IOException If an I/O error occurs.
+     * @see #getContent(Path)
+     * @since 1.1
+     */
+    public static byte[] getContent(String path) throws IOException {
+        Objects.requireNonNull(path);
+        URI uri = URI.create("memory:" + path); //$NON-NLS-1$
+        return getContent(Paths.get(uri));
+    }
+
+    /**
+     * Returns the content of an existing file.
+     * <p>
+     * This method works like {@link Files#readAllBytes(Path)} but is more optimized for in-memory paths.
+     *
+     * @param path The path to the file to return the content of.
+     * @return The content of the given file.
+     * @throws NullPointerException If the given path is {@code null}.
+     * @throws ProviderMismatchException If the given path is not an in-memory path.
+     * @throws IOException If an I/O error occurs.
+     * @since 1.1
+     */
+    public static byte[] getContent(Path path) throws IOException {
+        return toMemoryPath(path).getContent();
+    }
+
+    /**
+     * Sets the content of a file. If the file does not exist it will be created. This method is shorthand for the following: <pre>
+     * URI uri = URI.create("memory:" + path);
+     * setContents(Paths.get(uri), content);</pre>
+     *
+     * @param path The path to the file to set the content of.
+     * @param content The new content for the file.
+     * @throws NullPointerException If the given path or content is {@code null}.
+     * @throws IllegalArgumentException If the path does not lead to a valid URI.
+     * @throws IOException If an I/O error occurs.
+     * @see #setContent(Path, byte[])
+     * @since 1.1
+     */
+    public static void setContent(String path, byte[] content) throws IOException {
+        Objects.requireNonNull(path);
+        URI uri = URI.create("memory:" + path); //$NON-NLS-1$
+        setContent(Paths.get(uri), content);
+    }
+
+    /**
+     * Sets the content of a file. If the file does not exist it will be created.
+     * <p>
+     * This method works like {@link Files#write(Path, byte[], OpenOption...)} with no options given but is more optimized for in-memory paths.
+     * It does perform the necessary access checks on the file and/or its parent directory.
+     *
+     * @param path The path to the file to set the content of.
+     * @param content The new content for the file.
+     * @throws NullPointerException If the given path or content is {@code null}.
+     * @throws ProviderMismatchException If the given path is not an in-memory path.
+     * @throws IOException If an I/O error occurs.
+     * @since 1.1
+     */
+    public static void setContent(Path path, byte[] content) throws IOException {
+        Objects.requireNonNull(content);
+        toMemoryPath(path).setContent(content);
+    }
+
     private static MemoryPath toMemoryPath(Path path) {
         Objects.requireNonNull(path);
         if (path instanceof MemoryPath) {
             return (MemoryPath) path;
         }
         throw new ProviderMismatchException();
+    }
+
+    /**
+     * Clears all stored in-memory files and directories. Afterwards only the root directory will exist.
+     *
+     * @since 1.1
+     */
+    public static void clear() {
+        MemoryFileStore.INSTANCE.clear();
     }
 }

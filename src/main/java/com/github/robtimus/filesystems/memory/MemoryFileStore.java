@@ -186,6 +186,35 @@ class MemoryFileStore extends FileStore {
         return normalized;
     }
 
+    synchronized byte[] getContent(MemoryPath path) throws IOException {
+        Node node = getExistingNode(path);
+        if (node instanceof Directory) {
+            throw Messages.fileSystemProvider().isDirectory(path.path());
+        }
+        File file = (File) node;
+        return file.getContent();
+    }
+
+    synchronized void setContent(MemoryPath path, byte[] content) throws IOException {
+        Node node = findNode(path);
+        if (node instanceof Directory) {
+            throw Messages.fileSystemProvider().isDirectory(path.path());
+        }
+        File file = (File) node;
+
+        if (file == null) {
+            Directory parent = getExistingParentNode(path);
+            validateTarget(parent, path, true);
+
+            file = new File();
+            parent.add(path.fileName(), file);
+        }
+        if (file.isReadOnly()) {
+            throw new AccessDeniedException(path.path());
+        }
+        file.setContent(content);
+    }
+
     synchronized InputStream newInputStream(MemoryPath path, OpenOption... options) throws IOException {
         OpenOptions openOptions = OpenOptions.forNewInputStream(options);
         assert openOptions.read;
@@ -662,6 +691,10 @@ class MemoryFileStore extends FileStore {
         }
     }
 
+    void clear() {
+        rootNode.clear();
+    }
+
     abstract static class Node {
         private Directory parent;
 
@@ -910,6 +943,14 @@ class MemoryFileStore extends FileStore {
                 updateLastModifiedAndAccessTimes();
             }
             return node;
+        }
+
+        synchronized void clear() {
+            if (!children.isEmpty()) {
+                children.clear();
+
+                updateLastModifiedAndAccessTimes();
+            }
         }
     }
 

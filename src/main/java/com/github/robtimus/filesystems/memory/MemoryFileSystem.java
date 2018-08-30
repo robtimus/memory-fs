@@ -159,6 +159,14 @@ final class MemoryFileSystem extends FileSystem {
         return path.path();
     }
 
+    byte[] getContent(MemoryPath path) throws IOException {
+        return fileStore.getContent(path);
+    }
+
+    void setContent(MemoryPath path, byte[] content) throws IOException {
+        fileStore.setContent(path, content);
+    }
+
     InputStream newInputStream(MemoryPath path, OpenOption... options) throws IOException {
         return fileStore.newInputStream(path, options);
     }

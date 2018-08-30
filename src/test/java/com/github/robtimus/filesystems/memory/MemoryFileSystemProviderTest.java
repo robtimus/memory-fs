@@ -35,11 +35,16 @@ import static org.mockito.Mockito.verify;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.FileTime;
+import java.util.Iterator;
 import java.util.Random;
 import org.junit.Before;
 import org.junit.Test;
@@ -220,5 +225,217 @@ public class MemoryFileSystemProviderTest {
         view.setHidden(true);
 
         verify(fileStore).setHidden(path, true);
+    }
+
+    @Test
+    public void testGetContentFromString() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createFile(foo);
+        try {
+            assertArrayEquals(new byte[0], MemoryFileSystemProvider.getContent("/foo"));
+
+            byte[] newContent = new byte[100];
+            new Random().nextBytes(newContent);
+
+            Files.write(foo, newContent);
+
+            assertArrayEquals(newContent, MemoryFileSystemProvider.getContent("/foo"));
+
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test
+    public void testGetContentExisting() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createFile(foo);
+        try {
+            assertArrayEquals(new byte[0], MemoryFileSystemProvider.getContent(foo));
+
+            byte[] newContent = new byte[100];
+            new Random().nextBytes(newContent);
+
+            Files.write(foo, newContent);
+
+            assertArrayEquals(newContent, MemoryFileSystemProvider.getContent(foo));
+
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testGetContentNonExisting() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+
+        MemoryFileSystemProvider.getContent(foo);
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testGetContentDirectory() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createDirectory(foo);
+
+        try {
+            MemoryFileSystemProvider.getContent(foo);
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test
+    public void testSetContentFromString() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        try {
+            Files.write(foo, new byte[] { 1, 2, 3 });
+
+            byte[] newContent = new byte[100];
+            new Random().nextBytes(newContent);
+
+            MemoryFileSystemProvider.setContent("/foo", newContent);
+
+            assertArrayEquals(newContent, Files.readAllBytes(foo));
+
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test
+    public void testSetContentExisting() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createFile(foo);
+        try {
+            Files.write(foo, new byte[] { 1, 2, 3 });
+
+            byte[] newContent = new byte[100];
+            new Random().nextBytes(newContent);
+
+            MemoryFileSystemProvider.setContent(foo, newContent);
+
+            assertArrayEquals(newContent, Files.readAllBytes(foo));
+
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testSetContentExistingReadOnly() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createFile(foo);
+        try {
+            Files.write(foo, new byte[] { 1, 2, 3 });
+
+            Files.setAttribute(foo, "memory:readOnly", true);
+
+            byte[] newContent = new byte[100];
+            new Random().nextBytes(newContent);
+
+            MemoryFileSystemProvider.setContent(foo, newContent);
+
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test
+    public void testSetContentNonExisting() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        assertFalse(Files.exists(foo));
+        try {
+            byte[] newContent = new byte[100];
+            new Random().nextBytes(newContent);
+
+            MemoryFileSystemProvider.setContent(foo, newContent);
+
+            assertTrue(Files.isRegularFile(foo));
+
+            assertArrayEquals(newContent, Files.readAllBytes(foo));
+
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testSetContentNonExistingReadOnlyParent() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path bar = foo.resolve("bar");
+        assertFalse(Files.exists(bar));
+        Files.createDirectory(foo);
+        try {
+            Files.setAttribute(foo, "memory:readOnly", true);
+
+            byte[] newContent = new byte[100];
+            new Random().nextBytes(newContent);
+
+            MemoryFileSystemProvider.setContent(bar, newContent);
+
+        } finally {
+            assertFalse(Files.exists(bar));
+
+            Files.delete(foo);
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testSetContentNonExistingNonExistingParent() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path bar = foo.resolve("bar");
+        assertFalse(Files.exists(bar));
+        try {
+            byte[] newContent = new byte[100];
+            new Random().nextBytes(newContent);
+
+            MemoryFileSystemProvider.setContent(bar, newContent);
+
+        } finally {
+            assertFalse(Files.exists(bar));
+            assertFalse(Files.exists(foo));
+        }
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testSetContentDirectory() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createDirectory(foo);
+        try {
+            byte[] newContent = new byte[100];
+            new Random().nextBytes(newContent);
+
+            MemoryFileSystemProvider.setContent(foo, newContent);
+
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test
+    public void testClear() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createDirectory(foo);
+
+        Path bar = foo.resolve("bar");
+        Files.createFile(bar);
+
+        Path baz = foo.resolveSibling("baz");
+        Files.createFile(baz);
+
+        assertTrue(Files.isDirectory(foo));
+        assertTrue(Files.isRegularFile(bar));
+        assertTrue(Files.isRegularFile(baz));
+
+        MemoryFileSystemProvider.clear();
+
+        assertFalse(Files.exists(foo));
+        assertFalse(Files.exists(bar));
+        assertFalse(Files.exists(baz));
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(foo.getParent())) {
+            Iterator<Path> iterator = stream.iterator();
+            assertFalse(iterator.hasNext());
+        }
     }
 }
