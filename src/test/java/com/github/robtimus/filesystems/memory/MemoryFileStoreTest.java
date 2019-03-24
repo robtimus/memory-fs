@@ -342,6 +342,19 @@ public class MemoryFileStoreTest {
         assertTrue(foo.isEmpty());
     }
 
+    @Test
+    public void testNewOutputStreamNonExistingCreateAndCreateNew() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.CREATE_NEW };
+        try (OutputStream output = fileStore.newOutputStream(createPath("/foo/bar"), options)) {
+            // don't do anything with the stream, there's a separate test for that
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertThat(foo.get("bar"), instanceOf(File.class));
+    }
+
     @Test(expected = NoSuchFileException.class)
     public void testNewOutputStreamNonExistingCreateNonExistingParent() throws IOException {
 
@@ -451,10 +464,131 @@ public class MemoryFileStoreTest {
         assertTrue(foo.isEmpty());
     }
 
+    @Test
+    public void testNewByteChannelReadWithTruncate() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.TRUNCATE_EXISTING);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertSame(bar, foo.get("bar"));
+    }
+
+    @Test
+    public void testNewByteChannelReadWithTruncateDeleteOnClose() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.DELETE_ON_CLOSE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+            assertSame(bar, foo.get("bar"));
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+    }
+
+    @Test
+    public void testNewByteChannelReadWithCreate() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertSame(bar, foo.get("bar"));
+    }
+
+    @Test
+    public void testNewByteChannelReadWithCreateDeleteOnClose() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+            assertSame(bar, foo.get("bar"));
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+    }
+
+    @Test
+    public void testNewByteChannelReadWithCreateNew() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertSame(bar, foo.get("bar"));
+    }
+
+    @Test
+    public void testNewByteChannelReadWithCreateNewDeleteOnClose() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.CREATE_NEW, StandardOpenOption.DELETE_ON_CLOSE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+            assertSame(bar, foo.get("bar"));
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+    }
+
     @Test(expected = NoSuchFileException.class)
     public void testNewByteChannelReadNonExisting() throws IOException {
 
         Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertTrue(root.isEmpty());
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testNewByteChannelReadNonExistingWithTruncate() throws IOException {
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.TRUNCATE_EXISTING);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertTrue(root.isEmpty());
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testNewByteChannelReadNonExistingWithCreate() throws IOException {
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertTrue(root.isEmpty());
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testNewByteChannelReadNonExistingWithCreateNew() throws IOException {
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW);
         try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
             // don't do anything with the channel, there's a separate test for that
         } finally {
@@ -812,6 +946,34 @@ public class MemoryFileStoreTest {
         }
     }
 
+    @Test(expected = AccessDeniedException.class)
+    public void testNewByteChannelWriteNonExistingCreateReadAttribute() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+        FileAttribute<Boolean> readOnly = new SimpleFileAttribute<>("memory:readOnly", true);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options, readOnly)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertThat(foo.get("bar"), instanceOf(File.class));
+        }
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testNewByteChannelWriteNonExistingCreateNewReadOnlyAttribute() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        FileAttribute<Boolean> readOnly = new SimpleFileAttribute<>("memory:readOnly", true);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options, readOnly)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertThat(foo.get("bar"), instanceOf(File.class));
+        }
+    }
+
     @Test(expected = FileSystemException.class)
     public void testNewByteChannelWriteDirectory() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
@@ -830,6 +992,373 @@ public class MemoryFileStoreTest {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertTrue(foo.isEmpty());
+        }
+    }
+
+    @Test
+    public void testNewByteChannelReadWriteExisting() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertSame(bar, foo.get("bar"));
+    }
+
+    @Test
+    public void testNewByteChannelReadWriteExistingDeleteOnClose() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+            assertSame(bar, foo.get("bar"));
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+    }
+
+    @Test
+    public void testNewByteChannelReadWriteExistingCreate() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertSame(bar, foo.get("bar"));
+    }
+
+    @Test
+    public void testNewByteChannelReadWriteExistingCreateDeleteOnClose() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE,
+                StandardOpenOption.DELETE_ON_CLOSE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+            assertSame(bar, foo.get("bar"));
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+    }
+
+    @Test(expected = FileAlreadyExistsException.class)
+    public void testNewByteChannelReadWriteExistingCreateNew() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertSame(bar, foo.get("bar"));
+        }
+    }
+
+    @Test(expected = FileAlreadyExistsException.class)
+    public void testNewByteChannelReadWriteExistingCreateNewDeleteOnClose() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW,
+                StandardOpenOption.DELETE_ON_CLOSE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertSame(bar, foo.get("bar"));
+        }
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testNewByteChannelReadWriteExistingReadOnly() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        bar.setReadOnly(true);
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertSame(bar, foo.get("bar"));
+        }
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testNewByteChannelReadWriteExistingReadOnlyDeleteOnClose() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        bar.setReadOnly(true);
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertSame(bar, foo.get("bar"));
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testNewByteChannelReadWriteNonExistingNoCreate() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertTrue(foo.isEmpty());
+        }
+    }
+
+    @Test
+    public void testNewByteChannelReadWriteNonExistingCreate() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertThat(foo.get("bar"), instanceOf(File.class));
+    }
+
+    @Test
+    public void testNewByteChannelReadWriteNonExistingCreateDeleteOnClose() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE,
+                StandardOpenOption.DELETE_ON_CLOSE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+            assertThat(foo.get("bar"), instanceOf(File.class));
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+    }
+
+    @Test
+    public void testNewByteChannelReadWriteNonExistingCreateNew() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertThat(foo.get("bar"), instanceOf(File.class));
+    }
+
+    @Test
+    public void testNewByteChannelReadWriteNonExistingCreateNewDeleteOnClose() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW,
+                StandardOpenOption.DELETE_ON_CLOSE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+            assertThat(foo.get("bar"), instanceOf(File.class));
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+    }
+
+    @Test
+    public void testNewByteChannelReadWriteNonExistingCreateWithAttributes() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", false),
+                new SimpleFileAttribute<>("memory:hidden", true),
+        };
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options, attributes)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertThat(foo.get("bar"), instanceOf(File.class));
+
+        Node bar = foo.get("bar");
+        assertEquals(123456L, bar.getLastModifiedTime().toMillis());
+        assertEquals(1234567L, bar.getLastAccessTime().toMillis());
+        assertEquals(12345678L, bar.getCreationTime().toMillis());
+        assertFalse(bar.isReadOnly());
+        assertTrue(bar.isHidden());
+    }
+
+    @Test
+    public void testNewByteChannelReadWriteNonExistingCreateNewWithAttributes() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", false),
+                new SimpleFileAttribute<>("memory:hidden", true),
+        };
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options, attributes)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+
+        assertSame(foo, root.get("foo"));
+        assertThat(foo.get("bar"), instanceOf(File.class));
+
+        Node bar = foo.get("bar");
+        assertEquals(123456L, bar.getLastModifiedTime().toMillis());
+        assertEquals(1234567L, bar.getLastAccessTime().toMillis());
+        assertEquals(12345678L, bar.getCreationTime().toMillis());
+        assertFalse(bar.isReadOnly());
+        assertTrue(bar.isHidden());
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testNewByteChannelReadWriteNonExistingCreateWithInvalidAttributes() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", true),
+                new SimpleFileAttribute<>("memory:hidden", true),
+                new SimpleFileAttribute<>("something:else", "foo"),
+        };
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options, attributes)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertTrue(foo.isEmpty());
+        }
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testNewByteChannelReadWriteNonExistingCreateNewWithInvalidAttributes() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", true),
+                new SimpleFileAttribute<>("memory:hidden", true),
+                new SimpleFileAttribute<>("something:else", "foo"),
+        };
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options, attributes)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertTrue(foo.isEmpty());
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testNewByteChannelReadWriteNonExistingCreateNonExistingParent() throws IOException {
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertTrue(root.isEmpty());
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testNewByteChannelReadWriteNonExistingCreateNewNonExistingParent() throws IOException {
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertTrue(root.isEmpty());
+        }
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testNewByteChannelReadWriteNonExistingCreateReadOnlyParent() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        foo.setReadOnly(true);
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertTrue(foo.isEmpty());
+        }
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testNewByteChannelReadWriteNonExistingCreateNewReadOnlyParent() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        foo.setReadOnly(true);
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo/bar"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertTrue(foo.isEmpty());
+        }
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testNewByteChannelReadWriteDirectory() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE);
+        try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertTrue(foo.isEmpty());
+        }
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testNewByteChannelReadWriteDirectoryDeleteOnClose() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
         try (SeekableByteChannel channel = fileStore.newByteChannel(createPath("/foo"), options)) {
             // don't do anything with the channel, there's a separate test for that
         } finally {
@@ -2392,6 +2921,14 @@ public class MemoryFileStoreTest {
         foo.setReadOnly(true);
 
         fileStore.readAttributes(createPath("/foo"), "memory:lastModifiedTime,readOnly,dummy");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testReadAttributesMapUnsupportedAttributePrefix() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        foo.setReadOnly(true);
+
+        fileStore.readAttributes(createPath("/foo"), "dummy:lastModifiedTime");
     }
 
     @Test(expected = UnsupportedOperationException.class)

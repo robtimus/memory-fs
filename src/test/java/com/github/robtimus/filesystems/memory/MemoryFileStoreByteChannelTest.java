@@ -23,6 +23,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NonReadableChannelException;
 import java.nio.channels.NonWritableChannelException;
 import java.nio.channels.SeekableByteChannel;
@@ -44,7 +45,7 @@ public class MemoryFileStoreByteChannelTest {
         File file = new File();
         file.setContent(content.getBytes());
 
-        try (SeekableByteChannel channel = file.newByteChannel(false, false, null)) {
+        try (SeekableByteChannel channel = file.newByteChannel(true, false, false, null)) {
             byte[] bytes = new byte[destSize];
             ByteBuffer buffer = ByteBuffer.wrap(bytes);
             assertEquals(destSize, channel.read(buffer));
@@ -76,7 +77,7 @@ public class MemoryFileStoreByteChannelTest {
         File file = new File();
         file.setContent(content.getBytes());
 
-        try (SeekableByteChannel channel = file.newByteChannel(false, false, null)) {
+        try (SeekableByteChannel channel = file.newByteChannel(true, false, false, null)) {
             byte[] bytes = new byte[content.length() + 1];
             ByteBuffer buffer = ByteBuffer.wrap(bytes);
             assertEquals(content.length(), channel.read(buffer));
@@ -104,7 +105,7 @@ public class MemoryFileStoreByteChannelTest {
         File file = new File();
         file.setContent(content.getBytes());
 
-        try (SeekableByteChannel channel = file.newByteChannel(false, false, null)) {
+        try (SeekableByteChannel channel = file.newByteChannel(true, false, false, null)) {
             byte[] bytes = new byte[content.length() + 1];
             ByteBuffer buffer = ByteBuffer.wrap(bytes);
             assertEquals(content.length(), channel.read(buffer));
@@ -130,10 +131,22 @@ public class MemoryFileStoreByteChannelTest {
 
         File file = new File();
 
-        try (SeekableByteChannel channel = file.newByteChannel(true, false, null)) {
+        try (SeekableByteChannel channel = file.newByteChannel(false, true, false, null)) {
             ByteBuffer buffer = ByteBuffer.allocate(10);
             channel.read(buffer);
         }
+    }
+
+    @Test(expected = ClosedChannelException.class)
+    public void testReadFromClosedChannel() throws IOException {
+
+        File file = new File();
+
+        @SuppressWarnings("resource")
+        SeekableByteChannel channel = file.newByteChannel(false, true, false, null);
+        channel.close();
+        ByteBuffer buffer = ByteBuffer.allocate(10);
+        channel.read(buffer);
     }
 
     @Test
@@ -144,7 +157,7 @@ public class MemoryFileStoreByteChannelTest {
 
         File file = new File();
 
-        try (SeekableByteChannel channel = file.newByteChannel(true, false, null)) {
+        try (SeekableByteChannel channel = file.newByteChannel(false, true, false, null)) {
             ByteBuffer buffer = ByteBuffer.wrap(content.getBytes());
             channel.write(buffer);
             assertArrayEquals(content.getBytes(), file.getContent());
@@ -169,10 +182,22 @@ public class MemoryFileStoreByteChannelTest {
 
         File file = new File();
 
-        try (SeekableByteChannel channel = file.newByteChannel(false, false, null)) {
+        try (SeekableByteChannel channel = file.newByteChannel(true, false, false, null)) {
             ByteBuffer buffer = ByteBuffer.allocate(10);
             channel.write(buffer);
         }
+    }
+
+    @Test(expected = ClosedChannelException.class)
+    public void testWriteToClosedChannel() throws IOException {
+
+        File file = new File();
+
+        @SuppressWarnings("resource")
+        SeekableByteChannel channel = file.newByteChannel(true, false, false, null);
+        channel.close();
+        ByteBuffer buffer = ByteBuffer.allocate(10);
+        channel.write(buffer);
     }
 
     @Test
@@ -182,7 +207,7 @@ public class MemoryFileStoreByteChannelTest {
         File file = new File();
         file.setContent(content.getBytes());
 
-        try (SeekableByteChannel channel = file.newByteChannel(true, true, null)) {
+        try (SeekableByteChannel channel = file.newByteChannel(false, true, true, null)) {
             channel.truncate(content.length() + 1);
             assertArrayEquals(content.getBytes(), file.getContent());
             channel.truncate(1);
@@ -197,8 +222,41 @@ public class MemoryFileStoreByteChannelTest {
         File file = new File();
         file.setContent(content.getBytes());
 
-        try (SeekableByteChannel channel = file.newByteChannel(false, false, null)) {
+        try (SeekableByteChannel channel = file.newByteChannel(true, false, false, null)) {
             channel.truncate(1);
+        }
+    }
+
+    @Test(expected = ClosedChannelException.class)
+    public void testTruncateClosedChannel() throws IOException {
+        final String content = "Hello World";
+
+        File file = new File();
+        file.setContent(content.getBytes());
+
+        @SuppressWarnings("resource")
+        SeekableByteChannel channel = file.newByteChannel(true, false, false, null);
+        channel.close();
+        channel.truncate(1);
+    }
+
+    @Test
+    public void testReadWrite() throws IOException {
+        final String content = "Hello World";
+
+        File file = new File();
+
+        try (SeekableByteChannel channel = file.newByteChannel(true, true, false, null)) {
+            ByteBuffer buffer = ByteBuffer.wrap(content.getBytes());
+            channel.write(buffer);
+            assertArrayEquals(content.getBytes(), file.getContent());
+
+            channel.position(6);
+
+            byte[] bytes = new byte[content.length()];
+            buffer = ByteBuffer.wrap(bytes);
+            assertEquals(5, channel.read(buffer));
+            assertArrayEquals(content.substring(6).getBytes(), Arrays.copyOf(bytes, 5));
         }
     }
 
@@ -213,7 +271,7 @@ public class MemoryFileStoreByteChannelTest {
                 runCount.incrementAndGet();
             }
         };
-        try (SeekableByteChannel channel = file.newByteChannel(false, false, onClose)) {
+        try (SeekableByteChannel channel = file.newByteChannel(true, false, false, onClose)) {
             assertTrue(channel.isOpen());
             channel.close();
             assertFalse(channel.isOpen());

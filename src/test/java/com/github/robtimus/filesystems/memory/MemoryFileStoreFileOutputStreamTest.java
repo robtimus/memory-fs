@@ -54,6 +54,32 @@ public class MemoryFileStoreFileOutputStreamTest {
     }
 
     @Test
+    public void testAppendSingle() throws IOException {
+        File file = new File();
+        file.setContent("Hello ".getBytes());
+
+        try (OutputStream output = file.newOutputStream(true, null)) {
+            output.write('W');
+            output.write('o');
+            output.write('r');
+            output.write('l');
+            output.write('d');
+            assertArrayEquals("Hello World".getBytes(), file.getContent());
+        }
+    }
+
+    @Test
+    public void testAppendBulk() throws IOException {
+        File file = new File();
+        file.setContent("Hello ".getBytes());
+
+        try (OutputStream output = file.newOutputStream(true, null)) {
+            output.write("World".getBytes());
+            assertArrayEquals("Hello World".getBytes(), file.getContent());
+        }
+    }
+
+    @Test
     public void testOnClose() throws IOException {
         File file = new File();
 

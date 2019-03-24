@@ -33,17 +33,25 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemAlreadyExistsException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.DosFileAttributes;
+import java.nio.file.attribute.FileOwnerAttributeView;
 import java.nio.file.attribute.FileTime;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Random;
 import org.junit.Before;
@@ -100,6 +108,13 @@ public class MemoryFileSystemProviderTest {
             File file = (File) node;
             assertArrayEquals(content, file.getContent());
 
+            try (InputStream input = Files.newInputStream(path)) {
+                byte[] readContent = new byte[content.length];
+                int len = input.read(readContent);
+                assertEquals(readContent.length, len);
+                assertArrayEquals(content, readContent);
+            }
+
         } finally {
 
             Files.delete(path);
@@ -107,6 +122,23 @@ public class MemoryFileSystemProviderTest {
 
             assertNull(MemoryFileStore.INSTANCE.rootNode.get("foo"));
         }
+    }
+
+    // MemoryFileSystemProvider.newFileSystem
+
+    @Test(expected = FileSystemAlreadyExistsException.class)
+    public void testNewFileSystem() throws IOException {
+        provider.newFileSystem(URI.create("memory:foo"), new HashMap<String, Object>());
+    }
+
+    // MemoryFileSystemProvider.getFileSystem
+
+    @Test
+    public void testGetFileSystem() {
+        @SuppressWarnings("resource")
+        FileSystem fileSystem = provider.getFileSystem(URI.create("memory:foo"));
+        assertThat(fileSystem, instanceOf(MemoryFileSystem.class));
+        assertEquals(Collections.singleton(fileStore), fileSystem.getFileStores());
     }
 
     // MemoryFileSystemProvider.getPath
@@ -161,6 +193,14 @@ public class MemoryFileSystemProviderTest {
         MemoryFileAttributeView view = provider.getFileAttributeView(path, MemoryFileAttributeView.class);
         assertNotNull(view);
         assertEquals("memory", view.name());
+    }
+
+    @Test
+    public void testGetFileAttributeViewOther() {
+        MemoryPath path = new MemoryPath(fs, "/foo/bar");
+
+        FileOwnerAttributeView view = provider.getFileAttributeView(path, FileOwnerAttributeView.class);
+        assertNull(view);
     }
 
     @Test
@@ -225,6 +265,43 @@ public class MemoryFileSystemProviderTest {
         view.setHidden(true);
 
         verify(fileStore).setHidden(path, true);
+    }
+
+    @Test
+    public void testReadAttributesBasic() throws IOException {
+        MemoryPath path = new MemoryPath(fs, "/foo");
+        Files.createFile(path);
+        try {
+            BasicFileAttributes attributes = provider.readAttributes(path, BasicFileAttributes.class);
+            assertNotNull(attributes);
+            assertTrue(attributes.isRegularFile());
+        } finally {
+            Files.delete(path);
+        }
+    }
+
+    @Test
+    public void testReadAttributesMemory() throws IOException {
+        MemoryPath path = new MemoryPath(fs, "/foo");
+        Files.createFile(path);
+        try {
+            MemoryFileAttributes attributes = provider.readAttributes(path, MemoryFileAttributes.class);
+            assertNotNull(attributes);
+            assertFalse(attributes.isHidden());
+        } finally {
+            Files.delete(path);
+        }
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testReadAttributesOther() throws IOException {
+        MemoryPath path = new MemoryPath(fs, "/foo");
+        Files.createFile(path);
+        try {
+            provider.readAttributes(path, DosFileAttributes.class);
+        } finally {
+            Files.delete(path);
+        }
     }
 
     @Test

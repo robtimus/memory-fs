@@ -265,16 +265,6 @@ class MemoryFileStore extends FileStore {
 
         OpenOptions openOptions = OpenOptions.forNewByteChannel(options);
 
-        if (openOptions.read) {
-            Node node = getExistingNode(path);
-            if (node instanceof Directory) {
-                throw Messages.fileSystemProvider().isDirectory(path.path());
-            }
-            File file = (File) node;
-            OnCloseAction onClose = openOptions.deleteOnClose ? new DeletePathAction(path) : null;
-            return file.newByteChannel(false, false, onClose);
-        }
-
         Node node = findNode(path);
         if (node instanceof Directory) {
             throw Messages.fileSystemProvider().isDirectory(path.path());
@@ -282,6 +272,16 @@ class MemoryFileStore extends FileStore {
         File file = (File) node;
         OnCloseAction onClose = openOptions.deleteOnClose ? new DeletePathAction(path) : null;
 
+        if (openOptions.read && !openOptions.write) {
+            // read-only mode; append is not allowed, and truncateExisting, createNew and create should be ignored
+            if (file == null) {
+                throw new NoSuchFileException(path.path());
+            }
+
+            return file.newByteChannel(true, false, false, onClose);
+        }
+
+        // either write-only mode, or read-write mode
         if (file == null) {
             if (!openOptions.create && !openOptions.createNew) {
                 throw new NoSuchFileException(path.path());
@@ -295,7 +295,7 @@ class MemoryFileStore extends FileStore {
             // creating the byte channel will update some of the attributes; therefore, set the attributes afterwards
 
             @SuppressWarnings("resource")
-            SeekableByteChannel channel = file.newByteChannel(true, openOptions.append, onClose);
+            SeekableByteChannel channel = file.newByteChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
 
             for (FileAttribute<?> attribute : attrs) {
                 try {
@@ -314,13 +314,14 @@ class MemoryFileStore extends FileStore {
 
             return channel;
         }
+
         if (openOptions.createNew) {
             throw new FileAlreadyExistsException(path.path());
         }
         if (file.isReadOnly()) {
             throw new AccessDeniedException(path.path());
         }
-        return file.newByteChannel(true, openOptions.append, onClose);
+        return file.newByteChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
     }
 
     synchronized DirectoryStream<Path> newDirectoryStream(MemoryPath path, Filter<? super Path> filter) throws IOException {
@@ -553,9 +554,6 @@ class MemoryFileStore extends FileStore {
         } else {
             view = attributes.substring(0, pos);
         }
-        if (!"basic".equals(view) && !"memory".equals(view)) { //$NON-NLS-1$ //$NON-NLS-2$
-            throw Messages.fileSystemProvider().unsupportedFileAttributeView(view);
-        }
 
         Set<String> allowedAttributes;
         if (attributes.startsWith("basic:")) { //$NON-NLS-1$
@@ -563,8 +561,7 @@ class MemoryFileStore extends FileStore {
         } else if (attributes.startsWith("memory:")) { //$NON-NLS-1$
             allowedAttributes = MEMORY_ATTRIBUTES;
         } else {
-            // should not occur
-            throw Messages.fileSystemProvider().unsupportedFileAttributeView(attributes.substring(0, attributes.indexOf(':')));
+            throw Messages.fileSystemProvider().unsupportedFileAttributeView(view);
         }
 
         Map<String, Object> result = getAttributeMap(attributes, allowedAttributes);
@@ -995,10 +992,10 @@ class MemoryFileStore extends FileStore {
             return new ContentOutputStream(onClose);
         }
 
-        synchronized SeekableByteChannel newByteChannel(boolean writable, boolean append, OnCloseAction onClose) {
+        synchronized SeekableByteChannel newByteChannel(boolean readable, boolean writable, boolean append, OnCloseAction onClose) {
             // assert that append => writable
             assert !append || writable : "append is only allowed if writable is true"; //$NON-NLS-1$
-            ContentByteChannel channel = new ContentByteChannel(writable, onClose);
+            ContentByteChannel channel = new ContentByteChannel(readable, writable, onClose);
             if (append) {
                 synchronized (channel) {
                     channel.position = content.size();
@@ -1174,19 +1171,21 @@ class MemoryFileStore extends FileStore {
 
         private final class ContentByteChannel implements SeekableByteChannel {
 
-            private boolean writeable;
+            private final boolean readable;
+            private final boolean writeable;
             private final OnCloseAction onClose;
 
             private boolean open = true;
             private int position = 0;
 
-            private ContentByteChannel(boolean writable, OnCloseAction onClose) {
+            private ContentByteChannel(boolean readable, boolean writable, OnCloseAction onClose) {
+                this.readable = readable;
                 this.writeable = writable;
                 this.onClose = onClose;
             }
 
             private void checkReadable() {
-                if (writeable) {
+                if (!readable) {
                     throw new NonReadableChannelException();
                 }
             }
