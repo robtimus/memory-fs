@@ -100,7 +100,7 @@ final class OpenOptions {
         return new OpenOptions(false, true, append, create, createNew, deleteOnClose);
     }
 
-    static OpenOptions forNewByteChannel(Set<? extends OpenOption> options) {
+    static OpenOptions forNewFileChannel(Set<? extends OpenOption> options) {
 
         boolean read = false;
         boolean write = false;

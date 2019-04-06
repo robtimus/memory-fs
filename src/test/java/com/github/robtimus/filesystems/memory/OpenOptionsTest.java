@@ -496,8 +496,8 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewByteChannel() {
-        OpenOptions options = OpenOptions.forNewByteChannel(EnumSet.noneOf(StandardOpenOption.class));
+    public void testForNewFileChannel() {
+        OpenOptions options = OpenOptions.forNewFileChannel(EnumSet.noneOf(StandardOpenOption.class));
         assertTrue(options.read);
         assertFalse(options.write);
         assertFalse(options.append);
@@ -505,7 +505,7 @@ public class OpenOptionsTest {
         assertFalse(options.createNew);
         assertFalse(options.deleteOnClose);
 
-        options = OpenOptions.forNewByteChannel(EnumSet.of(StandardOpenOption.READ));
+        options = OpenOptions.forNewFileChannel(EnumSet.of(StandardOpenOption.READ));
         assertTrue(options.read);
         assertFalse(options.write);
         assertFalse(options.append);
@@ -513,7 +513,7 @@ public class OpenOptionsTest {
         assertFalse(options.createNew);
         assertFalse(options.deleteOnClose);
 
-        options = OpenOptions.forNewByteChannel(EnumSet.of(StandardOpenOption.WRITE));
+        options = OpenOptions.forNewFileChannel(EnumSet.of(StandardOpenOption.WRITE));
         assertFalse(options.read);
         assertTrue(options.write);
         assertFalse(options.append);
@@ -521,7 +521,7 @@ public class OpenOptionsTest {
         assertFalse(options.createNew);
         assertFalse(options.deleteOnClose);
 
-        options = OpenOptions.forNewByteChannel(EnumSet.of(StandardOpenOption.APPEND));
+        options = OpenOptions.forNewFileChannel(EnumSet.of(StandardOpenOption.APPEND));
         assertFalse(options.read);
         assertTrue(options.write);
         assertTrue(options.append);
@@ -529,7 +529,7 @@ public class OpenOptionsTest {
         assertFalse(options.createNew);
         assertFalse(options.deleteOnClose);
 
-        options = OpenOptions.forNewByteChannel(EnumSet.of(StandardOpenOption.TRUNCATE_EXISTING));
+        options = OpenOptions.forNewFileChannel(EnumSet.of(StandardOpenOption.TRUNCATE_EXISTING));
         assertTrue(options.read);
         assertFalse(options.write);
         assertFalse(options.append);
@@ -537,7 +537,7 @@ public class OpenOptionsTest {
         assertFalse(options.createNew);
         assertFalse(options.deleteOnClose);
 
-        options = OpenOptions.forNewByteChannel(EnumSet.of(StandardOpenOption.CREATE));
+        options = OpenOptions.forNewFileChannel(EnumSet.of(StandardOpenOption.CREATE));
         assertTrue(options.read);
         assertFalse(options.write);
         assertFalse(options.append);
@@ -545,7 +545,7 @@ public class OpenOptionsTest {
         assertFalse(options.createNew);
         assertFalse(options.deleteOnClose);
 
-        options = OpenOptions.forNewByteChannel(EnumSet.of(StandardOpenOption.CREATE_NEW));
+        options = OpenOptions.forNewFileChannel(EnumSet.of(StandardOpenOption.CREATE_NEW));
         assertTrue(options.read);
         assertFalse(options.write);
         assertFalse(options.append);
@@ -553,7 +553,7 @@ public class OpenOptionsTest {
         assertTrue(options.createNew);
         assertFalse(options.deleteOnClose);
 
-        options = OpenOptions.forNewByteChannel(EnumSet.of(StandardOpenOption.DELETE_ON_CLOSE));
+        options = OpenOptions.forNewFileChannel(EnumSet.of(StandardOpenOption.DELETE_ON_CLOSE));
         assertTrue(options.read);
         assertFalse(options.write);
         assertFalse(options.append);
@@ -561,7 +561,7 @@ public class OpenOptionsTest {
         assertFalse(options.createNew);
         assertTrue(options.deleteOnClose);
 
-        options = OpenOptions.forNewByteChannel(EnumSet.of(StandardOpenOption.SPARSE));
+        options = OpenOptions.forNewFileChannel(EnumSet.of(StandardOpenOption.SPARSE));
         assertTrue(options.read);
         assertFalse(options.write);
         assertFalse(options.append);
@@ -569,7 +569,7 @@ public class OpenOptionsTest {
         assertFalse(options.createNew);
         assertFalse(options.deleteOnClose);
 
-        options = OpenOptions.forNewByteChannel(EnumSet.of(StandardOpenOption.SYNC));
+        options = OpenOptions.forNewFileChannel(EnumSet.of(StandardOpenOption.SYNC));
         assertTrue(options.read);
         assertFalse(options.write);
         assertFalse(options.append);
@@ -577,7 +577,7 @@ public class OpenOptionsTest {
         assertFalse(options.createNew);
         assertFalse(options.deleteOnClose);
 
-        options = OpenOptions.forNewByteChannel(EnumSet.of(StandardOpenOption.DSYNC));
+        options = OpenOptions.forNewFileChannel(EnumSet.of(StandardOpenOption.DSYNC));
         assertTrue(options.read);
         assertFalse(options.write);
         assertFalse(options.append);
@@ -587,13 +587,13 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForByteChannelWithInvalid() {
-        testForByteChannelInvalid(DummyOption.DUMMY);
+    public void testForNewFileChannelWithInvalid() {
+        testForNewFileChannelInvalid(DummyOption.DUMMY);
     }
 
-    private void testForByteChannelInvalid(OpenOption option) {
+    private void testForNewFileChannelInvalid(OpenOption option) {
         try {
-            OpenOptions.forNewByteChannel(Collections.singleton(option));
+            OpenOptions.forNewFileChannel(Collections.singleton(option));
             fail("Expected UnsupportedOperationException");
         } catch (UnsupportedOperationException e) {
             UnsupportedOperationException expected = Messages.fileSystemProvider().unsupportedOpenOption(option);
@@ -602,14 +602,14 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewByteChannelWithIllegalCombinations() {
-        testForNewByteChannelWithIllegalCombination(StandardOpenOption.READ, StandardOpenOption.APPEND);
-        testForNewByteChannelWithIllegalCombination(StandardOpenOption.APPEND, StandardOpenOption.TRUNCATE_EXISTING);
+    public void testForNewFileChannelWithIllegalCombinations() {
+        testForNewFileChannelWithIllegalCombination(StandardOpenOption.READ, StandardOpenOption.APPEND);
+        testForNewFileChannelWithIllegalCombination(StandardOpenOption.APPEND, StandardOpenOption.TRUNCATE_EXISTING);
     }
 
-    private void testForNewByteChannelWithIllegalCombination(StandardOpenOption... options) {
+    private void testForNewFileChannelWithIllegalCombination(StandardOpenOption... options) {
         try {
-            OpenOptions.forNewByteChannel(EnumSet.of(options[0], options));
+            OpenOptions.forNewFileChannel(EnumSet.of(options[0], options));
             fail("Expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             IllegalArgumentException expected = Messages.fileSystemProvider().illegalOpenOptionCombination(options);

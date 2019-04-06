@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
@@ -173,6 +174,10 @@ final class MemoryFileSystem extends FileSystem {
 
     OutputStream newOutputStream(MemoryPath path, OpenOption... options) throws IOException {
         return fileStore.newOutputStream(path, options);
+    }
+
+    FileChannel newFileChannel(MemoryPath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
+        return fileStore.newFileChannel(path, options, attrs);
     }
 
     SeekableByteChannel newByteChannel(MemoryPath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {

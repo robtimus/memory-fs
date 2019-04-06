@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
@@ -167,6 +168,10 @@ final class MemoryPath extends SimpleAbstractPath {
 
     OutputStream newOutputStream(OpenOption... options) throws IOException {
         return fs.newOutputStream(this, options);
+    }
+
+    FileChannel newFileChannel(Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
+        return fs.newFileChannel(this, options, attrs);
     }
 
     SeekableByteChannel newByteChannel(Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {

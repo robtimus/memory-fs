@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
@@ -127,6 +128,11 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     @Override
     public OutputStream newOutputStream(Path path, OpenOption... options) throws IOException {
         return toMemoryPath(path).newOutputStream(options);
+    }
+
+    @Override
+    public FileChannel newFileChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
+        return toMemoryPath(path).newFileChannel(options, attrs);
     }
 
     @Override

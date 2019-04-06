@@ -21,10 +21,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.Channel;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.channels.NonReadableChannelException;
 import java.nio.channels.NonWritableChannelException;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
@@ -260,10 +267,10 @@ class MemoryFileStore extends FileStore {
         return file.newOutputStream(openOptions.append, onClose);
     }
 
-    synchronized SeekableByteChannel newByteChannel(MemoryPath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
+    synchronized FileChannel newFileChannel(MemoryPath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
             throws IOException {
 
-        OpenOptions openOptions = OpenOptions.forNewByteChannel(options);
+        OpenOptions openOptions = OpenOptions.forNewFileChannel(options);
 
         Node node = findNode(path);
         if (node instanceof Directory) {
@@ -278,7 +285,7 @@ class MemoryFileStore extends FileStore {
                 throw new NoSuchFileException(path.path());
             }
 
-            return file.newByteChannel(true, false, false, onClose);
+            return file.newFileChannel(true, false, false, onClose);
         }
 
         // either write-only mode, or read-write mode
@@ -292,10 +299,10 @@ class MemoryFileStore extends FileStore {
 
             file = new File();
 
-            // creating the byte channel will update some of the attributes; therefore, set the attributes afterwards
+            // creating the file channel will update some of the attributes; therefore, set the attributes afterwards
 
             @SuppressWarnings("resource")
-            SeekableByteChannel channel = file.newByteChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
+            FileChannel channel = file.newFileChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
 
             for (FileAttribute<?> attribute : attrs) {
                 try {
@@ -321,7 +328,13 @@ class MemoryFileStore extends FileStore {
         if (file.isReadOnly()) {
             throw new AccessDeniedException(path.path());
         }
-        return file.newByteChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
+        return file.newFileChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
+    }
+
+    synchronized SeekableByteChannel newByteChannel(MemoryPath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
+            throws IOException {
+
+        return newFileChannel(path, options, attrs);
     }
 
     synchronized DirectoryStream<Path> newDirectoryStream(MemoryPath path, Filter<? super Path> filter) throws IOException {
@@ -953,6 +966,7 @@ class MemoryFileStore extends FileStore {
 
     static final class File extends Node {
         private final List<Byte> content = new ArrayList<>();
+        private LockTable lockTable;
 
         @Override
         boolean isRegularFile() {
@@ -981,7 +995,7 @@ class MemoryFileStore extends FileStore {
 
         synchronized InputStream newInputStream(OnCloseAction onClose) {
             updateLastAccessTime();
-            return new ContentInputStream(onClose);
+            return new ContentInputStream(this, onClose);
         }
 
         synchronized OutputStream newOutputStream(boolean append, OnCloseAction onClose) {
@@ -989,13 +1003,13 @@ class MemoryFileStore extends FileStore {
                 content.clear();
             }
             updateLastModifiedAndAccessTimes();
-            return new ContentOutputStream(onClose);
+            return new ContentOutputStream(this, onClose);
         }
 
-        synchronized SeekableByteChannel newByteChannel(boolean readable, boolean writable, boolean append, OnCloseAction onClose) {
+        synchronized FileChannel newFileChannel(boolean readable, boolean writable, boolean append, OnCloseAction onClose) {
             // assert that append => writable
             assert !append || writable : "append is only allowed if writable is true"; //$NON-NLS-1$
-            ContentByteChannel channel = new ContentByteChannel(readable, writable, onClose);
+            ContentFileChannel channel = new ContentFileChannel(this, readable, writable, onClose);
             if (append) {
                 synchronized (channel) {
                     channel.position = content.size();
@@ -1008,6 +1022,13 @@ class MemoryFileStore extends FileStore {
                 updateLastAccessTime();
             }
             return channel;
+        }
+
+        synchronized LockTable lockTable() {
+            if (lockTable == null) {
+                lockTable = new LockTable();
+            }
+            return lockTable;
         }
 
         // for test purposes
@@ -1030,8 +1051,9 @@ class MemoryFileStore extends FileStore {
             updateLastModifiedAndAccessTimes();
         }
 
-        private final class ContentInputStream extends InputStream {
+        private static final class ContentInputStream extends InputStream {
 
+            private final File file;
             private final OnCloseAction onClose;
 
             private int pos = 0;
@@ -1039,7 +1061,8 @@ class MemoryFileStore extends FileStore {
 
             private boolean open = true;
 
-            private ContentInputStream(OnCloseAction onClose) {
+            private ContentInputStream(File file, OnCloseAction onClose) {
+                this.file = file;
                 this.onClose = onClose;
             }
 
@@ -1055,9 +1078,9 @@ class MemoryFileStore extends FileStore {
 
             @Override
             public int read() throws IOException {
-                synchronized (File.this) {
-                    int result = pos < content.size() ? content.get(pos++) & 0xFF : -1;
-                    updateLastAccessTime();
+                synchronized (file) {
+                    int result = pos < file.content.size() ? file.content.get(pos++) & 0xFF : -1;
+                    file.updateLastAccessTime();
                     return result;
                 }
             }
@@ -1069,8 +1092,8 @@ class MemoryFileStore extends FileStore {
                     throw new IndexOutOfBoundsException();
                 }
 
-                synchronized (File.this) {
-                    int size = content.size();
+                synchronized (file) {
+                    int size = file.content.size();
                     if (pos >= size) {
                         return -1;
                     }
@@ -1082,31 +1105,31 @@ class MemoryFileStore extends FileStore {
                         return 0;
                     }
                     for (int i = 0; i < len; i++, pos++) {
-                        b[off + i] = content.get(pos);
+                        b[off + i] = file.content.get(pos);
                     }
-                    updateLastAccessTime();
+                    file.updateLastAccessTime();
                     return len;
                 }
             }
 
             @Override
             public long skip(long n) throws IOException {
-                synchronized (File.this) {
-                    long k = content.size() - pos;
+                synchronized (file) {
+                    long k = file.content.size() - pos;
                     if (n < k) {
                         k = n < 0 ? 0 : n;
                     }
                     pos += k;
-                    updateLastAccessTime();
+                    file.updateLastAccessTime();
                     return k;
                 }
             }
 
             @Override
             public int available() throws IOException {
-                synchronized (File.this) {
-                    int result = Math.max(0, content.size() - pos);
-                    updateLastAccessTime();
+                synchronized (file) {
+                    int result = Math.max(0, file.content.size() - pos);
+                    file.updateLastAccessTime();
                     return result;
                 }
             }
@@ -1127,13 +1150,15 @@ class MemoryFileStore extends FileStore {
             }
         }
 
-        private final class ContentOutputStream extends OutputStream {
+        private static final class ContentOutputStream extends OutputStream {
 
+            private final File file;
             private final OnCloseAction onClose;
 
             private boolean open = true;
 
-            private ContentOutputStream(OnCloseAction onClose) {
+            private ContentOutputStream(File file, OnCloseAction onClose) {
+                this.file = file;
                 this.onClose = onClose;
             }
 
@@ -1149,9 +1174,9 @@ class MemoryFileStore extends FileStore {
 
             @Override
             public void write(int b) throws IOException {
-                synchronized (File.this) {
-                    content.add((byte) b);
-                    updateLastModifiedAndAccessTimes();
+                synchronized (file) {
+                    file.content.add((byte) b);
+                    file.updateLastModifiedAndAccessTimes();
                 }
             }
 
@@ -1160,25 +1185,26 @@ class MemoryFileStore extends FileStore {
                 if (off < 0 || off > b.length || len < 0 || off + len - b.length > 0) {
                     throw new IndexOutOfBoundsException();
                 }
-                synchronized (File.this) {
+                synchronized (file) {
                     for (int i = 0; i < len; i++) {
-                        content.add(b[off + i]);
+                        file.content.add(b[off + i]);
                     }
-                    updateLastModifiedAndAccessTimes();
+                    file.updateLastModifiedAndAccessTimes();
                 }
             }
         }
 
-        private final class ContentByteChannel implements SeekableByteChannel {
+        private static final class ContentFileChannel extends FileChannel {
 
+            private final File file;
             private final boolean readable;
             private final boolean writeable;
             private final OnCloseAction onClose;
 
-            private boolean open = true;
             private int position = 0;
 
-            private ContentByteChannel(boolean readable, boolean writable, OnCloseAction onClose) {
+            private ContentFileChannel(File file, boolean readable, boolean writable, OnCloseAction onClose) {
+                this.file = file;
                 this.readable = readable;
                 this.writeable = writable;
                 this.onClose = onClose;
@@ -1197,37 +1223,39 @@ class MemoryFileStore extends FileStore {
             }
 
             private void checkOpen() throws ClosedChannelException {
-                if (!open) {
+                if (!isOpen()) {
                     throw new ClosedChannelException();
                 }
             }
 
             @Override
-            public synchronized boolean isOpen() {
-                return open;
-            }
-
-            @Override
-            public synchronized void close() throws IOException {
-                if (open) {
-                    open = false;
-                    if (onClose != null) {
-                        onClose.run();
-                    }
+            protected void implCloseChannel() throws IOException {
+                file.lockTable().invalidateAndRemoveAll(this);
+                if (onClose != null) {
+                    onClose.run();
                 }
             }
 
             @Override
             public synchronized int read(ByteBuffer dst) throws IOException {
+                int read = read(dst, position);
+                if (read > 0) {
+                    position += read;
+                }
+                return read;
+            }
+
+            @Override
+            public synchronized int read(ByteBuffer dst, long pos) throws IOException {
                 checkOpen();
                 checkReadable();
 
-                synchronized (File.this) {
-                    int size = content.size();
-                    if (position >= size) {
+                synchronized (file) {
+                    int size = file.content.size();
+                    if (pos >= size) {
                         return -1;
                     }
-                    int available = size - position;
+                    int available = size - (int) pos;
                     int len = dst.remaining();
                     if (len > available) {
                         len = available;
@@ -1239,25 +1267,51 @@ class MemoryFileStore extends FileStore {
                     byte[] buffer = new byte[8192];
                     while (totalRead < len) {
                         int bytesToRead = Math.min(len - totalRead, buffer.length);
-                        for (int i = 0; i < bytesToRead; i++, position++) {
-                            buffer[i] = content.get(position);
+                        for (int i = 0; i < bytesToRead && pos <= Integer.MAX_VALUE; i++, pos++) {
+                            buffer[i] = file.content.get((int) pos);
                         }
                         dst.put(buffer, 0, bytesToRead);
                         totalRead += bytesToRead;
                     }
-                    updateLastAccessTime();
+                    file.updateLastAccessTime();
                     return totalRead;
                 }
             }
 
             @Override
+            public synchronized long read(ByteBuffer[] dsts, int offset, int length) throws IOException {
+                int totalRead = 0;
+                for (int i = 0; i < length; i++) {
+                    int read = read(dsts[offset + i]);
+                    if (read == -1) {
+                        return totalRead == 0 ? -1 : totalRead;
+                    }
+                    totalRead += read;
+                }
+                return totalRead;
+            }
+
+            @Override
             public synchronized int write(ByteBuffer src) throws IOException {
+                int written = write(src, position);
+                if (written > 0) {
+                    position += written;
+                }
+                return written;
+            }
+
+            @Override
+            public synchronized int write(ByteBuffer src, long pos) throws IOException {
                 checkOpen();
                 checkWritable();
 
-                synchronized (File.this) {
-                    while (content.size() < position) {
-                        content.add((byte) 0);
+                synchronized (file) {
+                    if (pos > Integer.MAX_VALUE) {
+                        return 0;
+                    }
+
+                    while (file.content.size() < pos) {
+                        file.content.add((byte) 0);
                     }
 
                     int len = src.remaining();
@@ -1270,18 +1324,29 @@ class MemoryFileStore extends FileStore {
                     while (totalWritten < len) {
                         int bytesToWrite = Math.min(len - totalWritten, buffer.length);
                         src.get(buffer, 0, bytesToWrite);
-                        for (int i = 0; i < bytesToWrite; i++, position++) {
-                            if (position < content.size()) {
-                                content.set(position, buffer[i]);
+                        for (int i = 0; i < bytesToWrite && pos <= Integer.MAX_VALUE; i++, pos++) {
+                            if (pos < file.content.size()) {
+                                file.content.set((int) pos, buffer[i]);
                             } else {
-                                content.add(position, buffer[i]);
+                                assert pos == file.content.size();
+                                file.content.add(buffer[i]);
                             }
                         }
                         totalWritten += bytesToWrite;
                     }
-                    updateLastModifiedAndAccessTimes();
+                    file.updateLastModifiedAndAccessTimes();
                     return totalWritten;
                 }
+            }
+
+            @Override
+            public synchronized long write(ByteBuffer[] srcs, int offset, int length) throws IOException {
+                int totalWritten = 0;
+                for (int i = 0; i < length; i++) {
+                    int written = write(srcs[offset + i]);
+                    totalWritten += written;
+                }
+                return totalWritten;
             }
 
             @Override
@@ -1291,14 +1356,14 @@ class MemoryFileStore extends FileStore {
             }
 
             @Override
-            public synchronized SeekableByteChannel position(long newPosition) throws IOException {
+            public synchronized FileChannel position(long newPosition) throws IOException {
                 if (newPosition < 0) {
                     throw Messages.byteChannel().negativePosition(newPosition);
                 }
                 checkOpen();
                 position = (int) Math.min(newPosition, Integer.MAX_VALUE);
-                synchronized (File.this) {
-                    updateLastAccessTime();
+                synchronized (file) {
+                    file.updateLastAccessTime();
                 }
                 return this;
             }
@@ -1306,26 +1371,291 @@ class MemoryFileStore extends FileStore {
             @Override
             public synchronized long size() throws IOException {
                 checkOpen();
-                synchronized (File.this) {
-                    return content.size();
+                synchronized (file) {
+                    return file.content.size();
                 }
             }
 
             @Override
-            public synchronized SeekableByteChannel truncate(long size) throws IOException {
+            public synchronized FileChannel truncate(long size) throws IOException {
                 checkOpen();
                 checkWritable();
                 if (size < 0) {
                     throw Messages.byteChannel().negativeSize(size);
                 }
-                synchronized (File.this) {
-                    int oldSize = content.size();
+                synchronized (file) {
+                    int oldSize = file.content.size();
                     if (size < oldSize) {
-                        content.subList((int) size, oldSize).clear();
+                        file.content.subList((int) size, oldSize).clear();
                     }
-                    updateLastModifiedAndAccessTimes();
+                    file.updateLastModifiedAndAccessTimes();
                 }
                 return this;
+            }
+
+            @Override
+            public void force(boolean metaData) throws IOException {
+                // no need to do anything
+            }
+
+            @Override
+            public synchronized long transferTo(long pos, long count, WritableByteChannel target) throws IOException {
+                if (pos < 0) {
+                    throw Messages.fileChannel().negativePosition(pos);
+                }
+                if (count < 0) {
+                    throw Messages.fileChannel().negativeCount(count);
+                }
+
+                checkOpen();
+                checkReadable();
+
+                if (count == 0) {
+                    return 0;
+                }
+
+                synchronized (file) {
+                    if (pos > file.content.size()) {
+                        // nothing to transfer
+                        return 0;
+                    }
+                    if (target instanceof ContentFileChannel) {
+                        return transferTo((int) pos, count, (ContentFileChannel) target);
+                    }
+                    return transferToGeneric((int) pos, count, target);
+                }
+            }
+
+            private long transferTo(int pos, long count, ContentFileChannel target) throws IOException {
+                // note: potential deadlock if transferring both ways
+                synchronized (target.file) {
+                    target.checkOpen();
+                    target.checkWritable();
+
+                    int toTransfer = (int) Math.min(count, file.content.size() - pos);
+                    toTransfer = Math.min(toTransfer, Integer.MAX_VALUE - target.file.content.size());
+                    // toTransfer is the min of what we want to transfer (count), what the source has and what the destination allows
+                    if (toTransfer == 0) {
+                        // nothing to transfer, or the destination is full
+                        return 0;
+                    }
+
+                    target.file.content.addAll(file.content.subList(pos, pos + toTransfer));
+                    target.position += toTransfer;
+                    file.updateLastAccessTime();
+                    target.file.updateLastModifiedAndAccessTimes();
+
+                    return toTransfer;
+                }
+            }
+
+            private long transferToGeneric(int pos, long count, WritableByteChannel target) throws IOException {
+                ByteBuffer buffer = ByteBuffer.allocate(8192);
+
+                int toTransfer = (int) Math.min(count, file.content.size() - pos);
+                int remaining = toTransfer;
+                int transferred = 0;
+                while (remaining > 0) {
+                    int bytesToRead = Math.min(buffer.capacity(), remaining);
+                    for (int i = 0; i < bytesToRead; i++, pos++) {
+                        buffer.put(file.content.get(pos));
+                    }
+                    buffer.flip();
+                    target.write(buffer);
+                    buffer.clear();
+                    transferred += bytesToRead;
+                    remaining -= bytesToRead;
+                }
+                file.updateLastAccessTime();
+                return transferred;
+            }
+
+            @Override
+            public synchronized long transferFrom(ReadableByteChannel src, long pos, long count) throws IOException {
+                if (pos < 0) {
+                    throw Messages.fileChannel().negativePosition(pos);
+                }
+                if (count < 0) {
+                    throw Messages.fileChannel().negativeCount(count);
+                }
+
+                checkOpen();
+                checkWritable();
+
+                if (count == 0) {
+                    return 0;
+                }
+
+                synchronized (file) {
+                    if (pos > file.content.size()) {
+                        // nothing to transfer
+                        return 0;
+                    }
+                    if (src instanceof ContentFileChannel) {
+                        return transferFrom((ContentFileChannel) src, (int) pos, count);
+                    }
+                    return transferFromGeneric(src, (int) pos, count);
+                }
+            }
+
+            private long transferFrom(ContentFileChannel src, int pos, long count) throws IOException {
+                // note: potential deadlock if transferring both ways
+                synchronized (src.file) {
+                    src.checkOpen();
+                    src.checkReadable();
+
+                    int toTransfer = (int) Math.min(count, src.file.content.size() - src.position);
+                    toTransfer = Math.min(toTransfer, Integer.MAX_VALUE - pos);
+                    // toTransfer is the min of what we want to transfer (count), what the source has and what the destination allows
+                    if (toTransfer == 0) {
+                        // nothing to transfer, or the destination is full
+                        return 0;
+                    }
+
+                    int toOverwrite = Math.min(toTransfer, file.content.size() - pos);
+                    int toAdd = toTransfer - toOverwrite;
+
+                    for (int i = 0; i < toOverwrite; i++) {
+                        file.content.set(pos + i, src.file.content.get(src.position++));
+                    }
+                    if (toAdd > 0) {
+                        file.content.addAll(src.file.content.subList(src.position, src.position + toAdd));
+                        src.position += toAdd;
+                    }
+                    file.updateLastModifiedAndAccessTimes();
+                    src.file.updateLastAccessTime();
+
+                    return toTransfer;
+                }
+            }
+
+            private long transferFromGeneric(ReadableByteChannel src, int pos, long count) throws IOException {
+                ByteBuffer buffer = ByteBuffer.allocate(8192);
+
+                int toTransfer = (int) Math.min(count, Integer.MAX_VALUE - pos);
+                int remaining = toTransfer;
+                int transferred = 0;
+                while (remaining > 0) {
+                    int bytesToRead = Math.min(buffer.capacity(), remaining);
+                    buffer.limit(bytesToRead);
+                    int bytesRead = src.read(buffer);
+                    if (bytesRead == -1) {
+                        break;
+                    }
+                    buffer.flip();
+                    for (int i = 0; i < bytesRead; i++, pos++) {
+                        if (pos < file.content.size()) {
+                            file.content.set(pos, buffer.get(i));
+                        } else {
+                            assert pos == file.content.size();
+                            file.content.add(buffer.get(i));
+                        }
+                    }
+                    buffer.clear();
+                    transferred += bytesRead;
+                    remaining -= bytesRead;
+                }
+                file.updateLastModifiedAndAccessTimes();
+                return transferred;
+            }
+
+            @Override
+            public MappedByteBuffer map(MapMode mode, long position, long size) throws IOException {
+                throw Messages.unsupportedOperation(FileChannel.class, "map"); //$NON-NLS-1$
+            }
+
+            @Override
+            public synchronized FileLock lock(long position, long size, boolean shared) throws IOException {
+                checkOpen();
+                if (shared && !readable) {
+                    throw new NonReadableChannelException();
+                }
+                if (!shared && !writeable) {
+                    throw new NonWritableChannelException();
+                }
+
+                LockTable lockTable = file.lockTable();
+                Lock lock = new Lock(this, position, size, lockTable);
+                lockTable.add(lock);
+                return lock;
+            }
+
+            @Override
+            public FileLock tryLock(long position, long size, boolean shared) throws IOException {
+                // in-memory files cannot be accessed externally, and therefore locking will never block, so lock and tryLock actually do the same
+                return lock(position, size, shared);
+            }
+        }
+
+        private static final class Lock extends FileLock {
+
+            private final LockTable lockTable;
+            private boolean isValid = true;
+
+            private Lock(ContentFileChannel channel, long position, long size, LockTable lockTable) {
+                super(channel, position, size, false);
+                this.lockTable = lockTable;
+            }
+
+            @Override
+            public synchronized boolean isValid() {
+                return isValid;
+            }
+
+            private synchronized void invalidate() {
+                isValid = false;
+            }
+
+            @Override
+            @SuppressWarnings("resource")
+            public synchronized void release() throws IOException {
+                Channel channel = acquiredBy();
+                if (!channel.isOpen()) {
+                    throw new ClosedChannelException();
+                }
+                if (isValid) {
+                    lockTable.remove(this);
+                    isValid = false;
+                }
+            }
+        }
+
+        private static final class LockTable {
+
+            private final List<Lock> locks = new ArrayList<>();
+
+            private void checkLocks(long position, long size) {
+                for (Lock lock : locks) {
+                    if (lock.overlaps(position, size)) {
+                        throw new OverlappingFileLockException();
+                    }
+                }
+            }
+
+            private void add(Lock lock) {
+                synchronized (locks) {
+                    checkLocks(lock.position(), lock.size());
+                    locks.add(lock);
+                }
+            }
+
+            private void remove(Lock lock) {
+                synchronized (locks) {
+                    locks.remove(lock);
+                }
+            }
+
+            private void invalidateAndRemoveAll(FileChannel channel) {
+                synchronized (locks) {
+                    for (Iterator<Lock> i = locks.iterator(); i.hasNext(); ) {
+                        @SuppressWarnings("resource")
+                        Lock lock = i.next();
+                        if (lock.channel() == channel) {
+                            lock.invalidate();
+                            i.remove();
+                        }
+                    }
+                }
             }
         }
     }

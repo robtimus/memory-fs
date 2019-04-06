@@ -36,6 +36,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
@@ -45,6 +47,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.DosFileAttributes;
@@ -111,6 +114,14 @@ public class MemoryFileSystemProviderTest {
             try (InputStream input = Files.newInputStream(path)) {
                 byte[] readContent = new byte[content.length];
                 int len = input.read(readContent);
+                assertEquals(readContent.length, len);
+                assertArrayEquals(content, readContent);
+            }
+
+            try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
+                byte[] readContent = new byte[content.length];
+                ByteBuffer buffer = ByteBuffer.wrap(readContent);
+                int len = channel.read(buffer);
                 assertEquals(readContent.length, len);
                 assertArrayEquals(content, readContent);
             }
