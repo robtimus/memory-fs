@@ -1529,14 +1529,16 @@ public class MemoryFileStoreTest {
         assertSame(foo, root.get("bar"));
     }
 
-    @Test
+    @Test(expected = FileSystemException.class)
     public void testCreateLinkToDirectory() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
-        provider.createLink(createPath("/bar"), createPath("foo"));
-
-        assertSame(foo, root.get("foo"));
-        assertSame(foo, root.get("bar"));
+        try {
+            provider.createLink(createPath("/bar"), createPath("foo"));
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertNull(root.get("bar"));
+        }
     }
 
     @Test(expected = AccessDeniedException.class)

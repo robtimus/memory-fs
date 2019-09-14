@@ -404,6 +404,9 @@ class MemoryFileStore extends FileStore {
         validateTarget(parent, link, false);
 
         Node node = getExistingNode(existing);
+        if (node instanceof Directory) {
+            throw Messages.fileSystemProvider().isDirectory(existing.path());
+        }
         parent.add(link.fileName(), node);
     }
 
