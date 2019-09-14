@@ -186,6 +186,10 @@ final class MemoryPath extends SimpleAbstractPath {
         fs.createDirectory(this, attrs);
     }
 
+    void createLink(MemoryPath existing) throws IOException {
+        fs.createLink(this, existing);
+    }
+
     void delete() throws IOException {
         fs.delete(this);
     }

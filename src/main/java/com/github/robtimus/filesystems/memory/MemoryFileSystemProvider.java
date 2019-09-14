@@ -151,6 +151,11 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
+    public void createLink(Path link, Path existing) throws IOException {
+        toMemoryPath(link).createLink(toMemoryPath(existing));
+    }
+
+    @Override
     public void delete(Path path) throws IOException {
         toMemoryPath(path).delete();
     }

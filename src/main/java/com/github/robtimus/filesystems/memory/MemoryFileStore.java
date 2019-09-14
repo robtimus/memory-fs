@@ -399,6 +399,14 @@ class MemoryFileStore extends FileStore {
         parent.add(dir.fileName(), directory);
     }
 
+    synchronized void createLink(MemoryPath link, MemoryPath existing) throws IOException {
+        Directory parent = getExistingParentNode(link);
+        validateTarget(parent, link, false);
+
+        Node node = getExistingNode(existing);
+        parent.add(link.fileName(), node);
+    }
+
     synchronized void delete(MemoryPath path) throws IOException {
         Node node = getExistingNode(path);
         deleteNode(node, path);

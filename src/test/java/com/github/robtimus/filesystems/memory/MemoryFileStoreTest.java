@@ -1517,6 +1517,83 @@ public class MemoryFileStoreTest {
         }
     }
 
+    // MemoryFileStore.createLink
+
+    @Test
+    public void testCreateLinkToFile() throws IOException {
+        File foo = (File) root.add("foo", new File());
+
+        provider.createLink(createPath("/bar"), createPath("foo"));
+
+        assertSame(foo, root.get("foo"));
+        assertSame(foo, root.get("bar"));
+    }
+
+    @Test
+    public void testCreateLinkToDirectory() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        provider.createLink(createPath("/bar"), createPath("foo"));
+
+        assertSame(foo, root.get("foo"));
+        assertSame(foo, root.get("bar"));
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testCreateLinkReadOnlyParent() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        Node bar = foo.add("bar", new File());
+        root.add("baz", new File());
+
+        // content:
+        // d /foo
+        // f /foo/bar
+        // f /baz
+
+        foo.setReadOnly(true);
+
+        try {
+            provider.createLink(createPath("/foo/bar"), createPath("/baz"));
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertSame(bar, foo.get("bar"));
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testCreateLinkNonExistingParent() throws IOException {
+        root.add("baz", new File());
+
+        try {
+            provider.createLink(createPath("/foo/bar"), createPath("/baz"));
+        } finally {
+            assertNull(root.get("foo"));
+        }
+    }
+
+    @Test(expected = FileAlreadyExistsException.class)
+    public void testCreateLinkExisting() throws IOException {
+        File foo = (File) root.add("foo", new File());
+        Node bar = root.add("bar", new Directory());
+
+        try {
+            provider.createLink(createPath("/foo"), createPath("/bar"));
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertSame(bar, root.get("bar"));
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testCreateLinkMissingExisting() throws IOException {
+
+        try {
+            provider.createLink(createPath("/foo"), createPath("/bar"));
+        } finally {
+            assertTrue(root.isEmpty());
+        }
+    }
+
     // MemoryFileStore.delete
 
     @Test(expected = NoSuchFileException.class)

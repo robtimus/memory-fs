@@ -192,6 +192,10 @@ final class MemoryFileSystem extends FileSystem {
         fileStore.createDirectory(dir, attrs);
     }
 
+    void createLink(MemoryPath link, MemoryPath existing) throws IOException {
+        fileStore.createLink(link, existing);
+    }
+
     void delete(MemoryPath path) throws IOException {
         fileStore.delete(path);
     }
