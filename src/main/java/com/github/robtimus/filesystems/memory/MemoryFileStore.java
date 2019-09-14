@@ -401,7 +401,19 @@ class MemoryFileStore extends FileStore {
 
     synchronized void delete(MemoryPath path) throws IOException {
         Node node = getExistingNode(path);
+        deleteNode(node, path);
+    }
 
+    synchronized boolean deleteIfExists(MemoryPath path) throws IOException {
+        Node node = findNode(path);
+        if (node != null) {
+            deleteNode(node, path);
+            return true;
+        }
+        return false;
+    }
+
+    private void deleteNode(Node node, MemoryPath path) throws IOException {
         if (isNonEmptyDirectory(node)) {
             throw new DirectoryNotEmptyException(path.path());
         }

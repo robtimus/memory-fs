@@ -196,6 +196,10 @@ final class MemoryFileSystem extends FileSystem {
         fileStore.delete(path);
     }
 
+    boolean deleteIfExists(MemoryPath path) throws IOException {
+        return fileStore.deleteIfExists(path);
+    }
+
     void copy(MemoryPath source, MemoryPath target, CopyOption... options) throws IOException {
         fileStore.copy(source, target, options);
     }

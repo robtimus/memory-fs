@@ -156,6 +156,11 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
+    public boolean deleteIfExists(Path path) throws IOException {
+        return toMemoryPath(path).deleteIfExists();
+    }
+
+    @Override
     public void copy(Path source, Path target, CopyOption... options) throws IOException {
         toMemoryPath(source).copy(toMemoryPath(target), options);
     }

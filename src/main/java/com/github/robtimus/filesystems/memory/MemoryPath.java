@@ -190,6 +190,10 @@ final class MemoryPath extends SimpleAbstractPath {
         fs.delete(this);
     }
 
+    boolean deleteIfExists() throws IOException {
+        return fs.deleteIfExists(this);
+    }
+
     void copy(MemoryPath target, CopyOption... options) throws IOException {
         fs.copy(this, target, options);
     }
