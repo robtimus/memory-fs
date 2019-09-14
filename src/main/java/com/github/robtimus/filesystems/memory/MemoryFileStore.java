@@ -442,7 +442,7 @@ class MemoryFileStore extends FileStore {
 
         Node sourceNode = getExistingNode(source);
 
-        if (source.toAbsolutePath().path().equals(target.toAbsolutePath().path())) {
+        if (sourceNode == findNode(target)) {
             // non-op, don't do a thing
             return;
         }

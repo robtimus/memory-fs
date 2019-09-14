@@ -1764,19 +1764,23 @@ public class MemoryFileStoreTest {
     public void testCopySame() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory bar = (Directory) foo.add("bar", new Directory());
+        root.add("baz", bar);
 
         // content:
         // d /foo
         // d /foo/bar
+        // d /baz
 
         CopyOption[] options = {};
         provider.copy(createPath("/"), createPath(""), options);
         provider.copy(createPath("/foo"), createPath("foo"), options);
         provider.copy(createPath("/foo/bar"), createPath("foo/bar"), options);
+        provider.copy(createPath("/foo/bar"), createPath("/baz"), options);
 
         assertSame(foo, root.get("foo"));
         assertSame(bar, foo.get("bar"));
         assertTrue(bar.isEmpty());
+        assertSame(bar, root.get("baz"));
     }
 
     @Test(expected = NoSuchFileException.class)
