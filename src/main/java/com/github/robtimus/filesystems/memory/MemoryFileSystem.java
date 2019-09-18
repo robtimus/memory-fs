@@ -29,7 +29,6 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
-import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -152,8 +151,8 @@ final class MemoryFileSystem extends FileSystem {
         return new MemoryPath(this, "/" + path.path()); //$NON-NLS-1$
     }
 
-    MemoryPath toRealPath(MemoryPath path, LinkOption... options) throws IOException {
-        return fileStore.toRealPath(path, options);
+    MemoryPath toRealPath(MemoryPath path, boolean followLinks) throws IOException {
+        return fileStore.toRealPath(path, followLinks);
     }
 
     String toString(MemoryPath path) {
@@ -192,6 +191,10 @@ final class MemoryFileSystem extends FileSystem {
         fileStore.createDirectory(dir, attrs);
     }
 
+    void createSymbolicLink(MemoryPath link, MemoryPath target, FileAttribute<?>... attrs) throws IOException {
+        fileStore.createSymbolicLink(link, target, attrs);
+    }
+
     void createLink(MemoryPath link, MemoryPath existing) throws IOException {
         fileStore.createLink(link, existing);
     }
@@ -202,6 +205,10 @@ final class MemoryFileSystem extends FileSystem {
 
     boolean deleteIfExists(MemoryPath path) throws IOException {
         return fileStore.deleteIfExists(path);
+    }
+
+    MemoryPath readSymbolicLink(MemoryPath link) throws IOException {
+        return fileStore.readSymbolicLink(link);
     }
 
     void copy(MemoryPath source, MemoryPath target, CopyOption... options) throws IOException {
@@ -228,27 +235,27 @@ final class MemoryFileSystem extends FileSystem {
         fileStore.checkAccess(path, modes);
     }
 
-    void setTimes(MemoryPath path, FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime) throws IOException {
-        fileStore.setTimes(path, lastModifiedTime, lastAccessTime, createTime);
+    void setTimes(MemoryPath path, FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime, boolean followLinks) throws IOException {
+        fileStore.setTimes(path, lastModifiedTime, lastAccessTime, createTime, followLinks);
     }
 
-    MemoryFileAttributes readAttributes(MemoryPath path) throws IOException {
-        return fileStore.readAttributes(path);
+    MemoryFileAttributes readAttributes(MemoryPath path, boolean followLinks) throws IOException {
+        return fileStore.readAttributes(path, followLinks);
     }
 
-    void setReadOnly(MemoryPath path, boolean value) throws IOException {
-        fileStore.setReadOnly(path, value);
+    void setReadOnly(MemoryPath path, boolean value, boolean followLinks) throws IOException {
+        fileStore.setReadOnly(path, value, followLinks);
     }
 
-    void setHidden(MemoryPath path, boolean value) throws IOException {
-        fileStore.setHidden(path, value);
+    void setHidden(MemoryPath path, boolean value, boolean followLinks) throws IOException {
+        fileStore.setHidden(path, value, followLinks);
     }
 
-    Map<String, Object> readAttributes(MemoryPath path, String attributes, LinkOption... options) throws IOException {
-        return fileStore.readAttributes(path, attributes, options);
+    Map<String, Object> readAttributes(MemoryPath path, String attributes, boolean followLinks) throws IOException {
+        return fileStore.readAttributes(path, attributes, followLinks);
     }
 
-    void setAttribute(MemoryPath path, String attribute, Object value, LinkOption... options) throws IOException {
-        fileStore.setAttribute(path, attribute, value, options);
+    void setAttribute(MemoryPath path, String attribute, Object value, boolean followLinks) throws IOException {
+        fileStore.setAttribute(path, attribute, value, followLinks);
     }
 }

@@ -40,9 +40,10 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileStore;
-import java.nio.file.LinkOption;
+import java.nio.file.FileSystemException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
+import java.nio.file.NotLinkException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributeView;
@@ -141,8 +142,12 @@ class MemoryFileStore extends FileStore {
         throw Messages.fileStore().unsupportedAttribute(attribute);
     }
 
-    private Directory findParentNode(MemoryPath path) {
-        path = path.toAbsolutePath().normalize();
+    private MemoryPath normalize(MemoryPath path) {
+        return path.toAbsolutePath().normalize();
+    }
+
+    private Directory findParentNode(MemoryPath path) throws FileSystemException {
+        assert path.isAbsolute() : "path must be absolute"; //$NON-NLS-1$
 
         int nameCount = path.getNameCount();
         if (nameCount == 0) {
@@ -152,6 +157,11 @@ class MemoryFileStore extends FileStore {
         Directory parent = rootNode;
         for (int i = 0; i < nameCount - 1; i++) {
             Node node = parent.get(path.nameAt(i));
+            if (node instanceof Link) {
+                MemoryPath resolvedPath = resolveLink((Link) node, path.subpath(0, i + 1));
+                Directory resolvedParent = findParentNode(resolvedPath);
+                node = findNode(resolvedParent, resolvedPath);
+            }
             if (!(node instanceof Directory)) {
                 return null;
             }
@@ -160,7 +170,7 @@ class MemoryFileStore extends FileStore {
         return parent;
     }
 
-    private Directory getExistingParentNode(MemoryPath path) throws NoSuchFileException {
+    private Directory getExistingParentNode(MemoryPath path) throws FileSystemException {
         Directory parent = findParentNode(path);
         if (parent == null) {
             throw new NoSuchFileException(path.parentPath());
@@ -168,56 +178,131 @@ class MemoryFileStore extends FileStore {
         return parent;
     }
 
-    private Node findNode(MemoryPath path) {
-        path = path.toAbsolutePath().normalize();
+    private Node findNode(Directory parent, MemoryPath path) {
+        assert path.isAbsolute() : "path must be absolute"; //$NON-NLS-1$
+
+        if (parent == null) {
+            return path.getNameCount() == 0 ? rootNode : null;
+        }
+        return parent.get(path.fileName());
+    }
+
+    private Node getExistingNode(MemoryPath path) throws FileSystemException {
+        assert path.isAbsolute() : "path must be absolute"; //$NON-NLS-1$
 
         if (path.getNameCount() == 0) {
             return rootNode;
         }
-        Directory parent = findParentNode(path);
-        return parent == null ? null : parent.get(path.fileName());
-    }
 
-    private Node getExistingNode(MemoryPath path) throws NoSuchFileException {
-        Node node = findNode(path);
+        Directory parent = findParentNode(path);
+        Node node = parent != null ? parent.get(path.fileName()) : null;
         if (node == null) {
             throw new NoSuchFileException(path.path());
         }
         return node;
     }
 
-    MemoryPath toRealPath(MemoryPath path, @SuppressWarnings("unused") LinkOption... options) throws IOException {
-        // no links are supported
-        MemoryPath normalized = path.toAbsolutePath().normalize();
-        getExistingNode(normalized);
-        return normalized;
+    private Node getExistingNode(MemoryPath path, boolean followLinks) throws FileSystemException {
+        Node node = getExistingNode(path);
+        if (followLinks && node instanceof Link) {
+            MemoryPath resolvedPath = resolveLink((Link) node, path);
+            node = getExistingNode(resolvedPath);
+        }
+        return node;
+    }
+
+    private MemoryPath resolveLink(Link link, MemoryPath path) throws FileSystemException {
+        MemoryPath currentPath = path;
+        Link currentLink = link;
+        int depth = 0;
+        while (depth < Link.MAX_DEPTH) {
+            MemoryPath targetPath = normalize(currentPath.resolveSibling(currentLink.target));
+            Directory parent = findParentNode(targetPath);
+            Node node = findNode(parent, targetPath);
+            if (!(node instanceof Link)) {
+                return targetPath;
+            }
+            currentPath = targetPath;
+            currentLink = (Link) node;
+            depth++;
+        }
+        throw new FileSystemException(path.path(), null, MemoryMessages.maximumLinkDepthExceeded());
+    }
+
+    private Link resolveLastLink(Link link, MemoryPath path) throws FileSystemException {
+        MemoryPath currentPath = path;
+        Link currentLink = link;
+        int depth = 0;
+        while (depth < Link.MAX_DEPTH) {
+            MemoryPath targetPath = normalize(currentPath.resolveSibling(currentLink.target));
+            Directory parent = findParentNode(targetPath);
+            Node node = findNode(parent, targetPath);
+            if (!(node instanceof Link)) {
+                // currentLink is the last working link, return it
+                return currentLink;
+            }
+            currentPath = targetPath;
+            currentLink = (Link) node;
+            depth++;
+        }
+        throw new FileSystemException(path.path(), null, MemoryMessages.maximumLinkDepthExceeded());
+    }
+
+    MemoryPath toRealPath(MemoryPath path, boolean followLinks) throws IOException {
+        MemoryPath currentPath = normalize(path);
+        Node node = getExistingNode(currentPath);
+        if (followLinks && node instanceof Link) {
+            Link currentLink = (Link) node;
+            int depth = 0;
+            while (depth < Link.MAX_DEPTH) {
+                MemoryPath targetPath = normalize(currentPath.resolveSibling(currentLink.target));
+                node = getExistingNode(targetPath);
+                if (!(node instanceof Link)) {
+                    return targetPath;
+                }
+                currentPath = targetPath;
+                currentLink = (Link) node;
+                depth++;
+            }
+            throw new FileSystemException(path.path(), null, MemoryMessages.maximumLinkDepthExceeded());
+        }
+        return currentPath;
     }
 
     synchronized byte[] getContent(MemoryPath path) throws IOException {
-        Node node = getExistingNode(path);
+        MemoryPath normalizedPath = normalize(path);
+        Node node = getExistingNode(normalizedPath, true);
         if (node instanceof Directory) {
-            throw Messages.fileSystemProvider().isDirectory(path.path());
+            throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
         }
         File file = (File) node;
         return file.getContent();
     }
 
     synchronized void setContent(MemoryPath path, byte[] content) throws IOException {
-        Node node = findNode(path);
+        MemoryPath normalizedPath = normalize(path);
+        Directory parent = getExistingParentNode(normalizedPath);
+        Node node = findNode(parent, normalizedPath);
+        MemoryPath fileToSave = normalizedPath;
+        if (node instanceof Link) {
+            MemoryPath resolvedPath = resolveLink((Link) node, normalizedPath);
+            parent = getExistingParentNode(resolvedPath);
+            node = findNode(parent, resolvedPath);
+            fileToSave = resolvedPath;
+        }
         if (node instanceof Directory) {
-            throw Messages.fileSystemProvider().isDirectory(path.path());
+            throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
         }
         File file = (File) node;
 
         if (file == null) {
-            Directory parent = getExistingParentNode(path);
-            validateTarget(parent, path, true);
+            validateTarget(parent, fileToSave, normalizedPath, true);
 
             file = new File();
-            parent.add(path.fileName(), file);
+            parent.add(fileToSave.fileName(), file);
         }
         if (file.isReadOnly()) {
-            throw new AccessDeniedException(path.path());
+            throw new AccessDeniedException(normalizedPath.path());
         }
         file.setContent(content);
     }
@@ -226,12 +311,13 @@ class MemoryFileStore extends FileStore {
         OpenOptions openOptions = OpenOptions.forNewInputStream(options);
         assert openOptions.read;
 
-        Node node = getExistingNode(path);
+        MemoryPath normalizedPath = normalize(path);
+        Node node = getExistingNode(normalizedPath, true);
         if (node instanceof Directory) {
-            throw Messages.fileSystemProvider().isDirectory(path.path());
+            throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
         }
         File file = (File) node;
-        OnCloseAction onClose = openOptions.deleteOnClose ? new DeletePathAction(path) : null;
+        OnCloseAction onClose = openOptions.deleteOnClose ? new DeletePathAction(normalizedPath) : null;
 
         return file.newInputStream(onClose);
     }
@@ -240,49 +326,64 @@ class MemoryFileStore extends FileStore {
         OpenOptions openOptions = OpenOptions.forNewOutputStream(options);
         assert openOptions.write;
 
-        Node node = findNode(path);
+        MemoryPath normalizedPath = normalize(path);
+        Directory parent = getExistingParentNode(normalizedPath);
+        Node node = findNode(parent, normalizedPath);
+        MemoryPath fileToSave = normalizedPath;
+        if (node instanceof Link) {
+            MemoryPath resolvedPath = resolveLink((Link) node, normalizedPath);
+            parent = getExistingParentNode(resolvedPath);
+            node = findNode(parent, resolvedPath);
+            fileToSave = resolvedPath;
+        }
         if (node instanceof Directory) {
-            throw Messages.fileSystemProvider().isDirectory(path.path());
+            throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
         }
         File file = (File) node;
-        OnCloseAction onClose = openOptions.deleteOnClose ? new DeletePathAction(path) : null;
+        OnCloseAction onClose = openOptions.deleteOnClose ? new DeletePathAction(normalizedPath) : null;
 
         if (file == null) {
             if (!openOptions.create && !openOptions.createNew) {
-                throw new NoSuchFileException(path.path());
+                throw new NoSuchFileException(normalizedPath.path());
             }
 
-            Directory parent = getExistingParentNode(path);
-            validateTarget(parent, path, openOptions.create && !openOptions.createNew);
+            validateTarget(parent, fileToSave, normalizedPath, openOptions.create && !openOptions.createNew);
 
             file = new File();
-            parent.add(path.fileName(), file);
+            parent.add(fileToSave.fileName(), file);
 
         } else if (openOptions.createNew) {
-            throw new FileAlreadyExistsException(path.path());
+            throw new FileAlreadyExistsException(normalizedPath.path());
         }
         if (file.isReadOnly()) {
-            throw new AccessDeniedException(path.path());
+            throw new AccessDeniedException(normalizedPath.path());
         }
         return file.newOutputStream(openOptions.append, onClose);
     }
 
-    synchronized FileChannel newFileChannel(MemoryPath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
-            throws IOException {
-
+    synchronized FileChannel newFileChannel(MemoryPath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
         OpenOptions openOptions = OpenOptions.forNewFileChannel(options);
 
-        Node node = findNode(path);
+        MemoryPath normalizedPath = normalize(path);
+        Directory parent = getExistingParentNode(normalizedPath);
+        Node node = findNode(parent, normalizedPath);
+        MemoryPath fileToSave = normalizedPath;
+        if (node instanceof Link) {
+            MemoryPath resolvedPath = resolveLink((Link) node, normalizedPath);
+            parent = getExistingParentNode(resolvedPath);
+            node = findNode(parent, resolvedPath);
+            fileToSave = resolvedPath;
+        }
         if (node instanceof Directory) {
-            throw Messages.fileSystemProvider().isDirectory(path.path());
+            throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
         }
         File file = (File) node;
-        OnCloseAction onClose = openOptions.deleteOnClose ? new DeletePathAction(path) : null;
+        OnCloseAction onClose = openOptions.deleteOnClose ? new DeletePathAction(normalizedPath) : null;
 
         if (openOptions.read && !openOptions.write) {
             // read-only mode; append is not allowed, and truncateExisting, createNew and create should be ignored
             if (file == null) {
-                throw new NoSuchFileException(path.path());
+                throw new NoSuchFileException(normalizedPath.path());
             }
 
             return file.newFileChannel(true, false, false, onClose);
@@ -291,11 +392,10 @@ class MemoryFileStore extends FileStore {
         // either write-only mode, or read-write mode
         if (file == null) {
             if (!openOptions.create && !openOptions.createNew) {
-                throw new NoSuchFileException(path.path());
+                throw new NoSuchFileException(normalizedPath.path());
             }
 
-            Directory parent = getExistingParentNode(path);
-            validateTarget(parent, path, openOptions.create && !openOptions.createNew);
+            validateTarget(parent, fileToSave, normalizedPath, openOptions.create && !openOptions.createNew);
 
             file = new File();
 
@@ -313,20 +413,20 @@ class MemoryFileStore extends FileStore {
                 }
             }
 
-            parent.add(path.fileName(), file);
+            parent.add(fileToSave.fileName(), file);
 
             if (file.isReadOnly()) {
-                throw new AccessDeniedException(path.path());
+                throw new AccessDeniedException(normalizedPath.path());
             }
 
             return channel;
         }
 
         if (openOptions.createNew) {
-            throw new FileAlreadyExistsException(path.path());
+            throw new FileAlreadyExistsException(normalizedPath.path());
         }
         if (file.isReadOnly()) {
-            throw new AccessDeniedException(path.path());
+            throw new AccessDeniedException(normalizedPath.path());
         }
         return file.newFileChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
     }
@@ -338,13 +438,14 @@ class MemoryFileStore extends FileStore {
     }
 
     synchronized DirectoryStream<Path> newDirectoryStream(MemoryPath path, Filter<? super Path> filter) throws IOException {
+        MemoryPath normalizedPath = normalize(path);
         // only retrieve the node to check if it's an existing directory
-        Node node = getExistingNode(path);
+        Node node = getExistingNode(normalizedPath, true);
         if (!(node instanceof Directory)) {
-            throw new NotDirectoryException(path.path());
+            throw new NotDirectoryException(normalizedPath.path());
         }
         Objects.requireNonNull(filter);
-        return new MemoryPathDirectoryStream(path, filter);
+        return new MemoryPathDirectoryStream(normalizedPath, filter);
     }
 
     private final class MemoryPathDirectoryStream extends AbstractDirectoryStream<Path> {
@@ -359,7 +460,19 @@ class MemoryFileStore extends FileStore {
 
         @Override
         protected void setupIteration() {
-            Node node = findNode(path);
+            // at this point node should be a Directory, but it could have changed between creating this stream and the iteration
+            Node node = null;
+            try {
+                Directory parent = findParentNode(path);
+                node = findNode(parent, path);
+                if (node instanceof Link) {
+                    MemoryPath resolvedPath = resolveLink((Link) node, path);
+                    parent = findParentNode(resolvedPath);
+                    node = findNode(parent, resolvedPath);
+                }
+            } catch (@SuppressWarnings("unused") FileSystemException e) {
+                // linking became too deep, ignore
+            }
             if (node instanceof Directory) {
                 Directory directory = (Directory) node;
                 names = new ArrayList<>(directory.children.keySet()).iterator();
@@ -369,7 +482,7 @@ class MemoryFileStore extends FileStore {
         }
 
         @Override
-        protected Path getNext() throws IOException {
+        protected Path getNext() {
             if (names.hasNext()) {
                 String name = names.next();
                 return path.resolve(name);
@@ -379,12 +492,13 @@ class MemoryFileStore extends FileStore {
     }
 
     synchronized void createDirectory(MemoryPath dir, FileAttribute<?>... attrs) throws IOException {
-        if (dir.getNameCount() == 0) {
-            throw new FileAlreadyExistsException(dir.path());
+        MemoryPath normalizedDir = normalize(dir);
+        if (normalizedDir.getNameCount() == 0) {
+            throw new FileAlreadyExistsException(normalizedDir.path());
         }
 
-        Directory parent = getExistingParentNode(dir);
-        validateTarget(parent, dir, false);
+        Directory parent = getExistingParentNode(normalizedDir);
+        validateTarget(parent, normalizedDir, false);
 
         Directory directory = new Directory();
 
@@ -396,29 +510,59 @@ class MemoryFileStore extends FileStore {
             }
         }
 
-        parent.add(dir.fileName(), directory);
+        parent.add(normalizedDir.fileName(), directory);
+    }
+
+    synchronized void createSymbolicLink(MemoryPath link, MemoryPath target, FileAttribute<?>... attrs) throws IOException {
+        MemoryPath normalizedLink = normalize(link);
+        // don't normalize target, it will be used as-is as the target of the link
+
+        Directory parent = getExistingParentNode(normalizedLink);
+        validateTarget(parent, normalizedLink, false);
+
+        Node node = new Link(target.path());
+
+        for (FileAttribute<?> attribute : attrs) {
+            try {
+                setAttribute(node, attribute.name(), attribute.value());
+            } catch (IllegalArgumentException e) {
+                throw new UnsupportedOperationException(e.getMessage());
+            }
+        }
+
+        parent.add(normalizedLink.fileName(), node);
     }
 
     synchronized void createLink(MemoryPath link, MemoryPath existing) throws IOException {
-        Directory parent = getExistingParentNode(link);
-        validateTarget(parent, link, false);
+        MemoryPath normalizedLink = normalize(link);
+        MemoryPath normalizedExisting = normalize(existing);
 
-        Node node = getExistingNode(existing);
+        Directory parent = getExistingParentNode(normalizedLink);
+        validateTarget(parent, normalizedLink, false);
+
+        Node node = getExistingNode(normalizedExisting);
+        // don't follow symbolic links; creating a hard link of a symbolic link copies the symbolic link
         if (node instanceof Directory) {
-            throw Messages.fileSystemProvider().isDirectory(existing.path());
+            throw Messages.fileSystemProvider().isDirectory(normalizedExisting.path());
         }
-        parent.add(link.fileName(), node);
+        parent.add(normalizedLink.fileName(), node);
     }
 
     synchronized void delete(MemoryPath path) throws IOException {
-        Node node = getExistingNode(path);
-        deleteNode(node, path);
+        MemoryPath normalizedPath = normalize(path);
+        // don't follow symbolic links; the symbolic link itself must be deleted
+        Node node = getExistingNode(normalizedPath);
+        deleteNode(node, normalizedPath);
     }
 
     synchronized boolean deleteIfExists(MemoryPath path) throws IOException {
-        Node node = findNode(path);
+        MemoryPath normalizedPath = normalize(path);
+
+        Directory parent = findParentNode(normalizedPath);
+        Node node = findNode(parent, normalizedPath);
+        // don't follow symbolic links; the symbolic link itself must be deleted
         if (node != null) {
-            deleteNode(node, path);
+            deleteNode(node, normalizedPath);
             return true;
         }
         return false;
@@ -437,66 +581,97 @@ class MemoryFileStore extends FileStore {
         node.parent.remove(path.fileName());
     }
 
+    synchronized MemoryPath readSymbolicLink(MemoryPath link) throws IOException {
+        MemoryPath normalizedLink = normalize(link);
+
+        Node node = getExistingNode(normalizedLink);
+        if (!(node instanceof Link)) {
+            throw new NotLinkException(normalizedLink.path());
+        }
+        return new MemoryPath(link.getFileSystem(), ((Link) node).target);
+    }
+
     synchronized void copy(MemoryPath source, MemoryPath target, CopyOption... options) throws IOException {
         CopyOptions copyOptions = CopyOptions.forCopy(options);
 
-        Node sourceNode = getExistingNode(source);
+        MemoryPath normalizedSource = normalize(source);
+        MemoryPath normalizedTarget = normalize(target);
 
-        if (sourceNode == findNode(target)) {
+        Node sourceNode = getExistingNode(normalizedSource, copyOptions.followLinks);
+
+        Directory targetDirectory = findParentNode(normalizedTarget);
+        Node targetNode = findNode(targetDirectory, normalizedTarget);
+        // don't follow symbolic links for the target
+
+        if (sourceNode == targetNode) {
             // non-op, don't do a thing
             return;
         }
 
-        Directory targetDirectory = findParentNode(target);
+        if (sourceNode instanceof Link) {
+            // copyOptions.followLinks is false
+            sourceNode = resolveLastLink((Link) sourceNode, normalizedSource);
+        }
 
-        validateTarget(targetDirectory, target, copyOptions.replaceExisting);
+        validateTarget(targetDirectory, normalizedTarget, copyOptions.replaceExisting);
 
-        Node targetNode = sourceNode.copy(copyOptions.copyAttributes);
+        targetNode = sourceNode.copy(copyOptions.copyAttributes);
 
-        targetDirectory.add(target.fileName(), targetNode);
+        targetDirectory.add(normalizedTarget.fileName(), targetNode);
     }
 
     synchronized void move(MemoryPath source, MemoryPath target, CopyOption... options) throws IOException {
         CopyOptions copyOptions = CopyOptions.forMove(options);
 
-        Node sourceNode = getExistingNode(source);
+        MemoryPath normalizedSource = normalize(source);
+        MemoryPath normalizedTarget = normalize(target);
 
-        if (sourceNode == findNode(target)) {
+        Node sourceNode = getExistingNode(normalizedSource);
+        // the link itself, and not the target, must be moved
+
+        Directory targetDirectory = findParentNode(normalizedTarget);
+        Node targetNode = findNode(targetDirectory, normalizedTarget);
+        // don't follow symbolic links for the target
+
+        if (sourceNode == targetNode) {
             // non-op, don't do a thing
             return;
         }
 
         if (sourceNode == rootNode) {
             // cannot move or rename the root
-            throw new DirectoryNotEmptyException(source.path());
+            throw new DirectoryNotEmptyException(normalizedSource.path());
         }
 
         Directory sourceDirectory = sourceNode.parent;
-        Directory targetDirectory = findParentNode(target);
 
         if (sourceDirectory.isReadOnly()) {
-            throw new AccessDeniedException(source.parentPath());
+            throw new AccessDeniedException(normalizedSource.parentPath());
         }
-        validateTarget(targetDirectory, target, copyOptions.replaceExisting);
+        validateTarget(targetDirectory, normalizedTarget, copyOptions.replaceExisting);
 
-        sourceDirectory.remove(source.fileName());
-        targetDirectory.add(target.fileName(), sourceNode);
+        sourceDirectory.remove(normalizedSource.fileName());
+        targetDirectory.add(normalizedTarget.fileName(), sourceNode);
     }
 
     private void validateTarget(Directory targetDirectory, MemoryPath target, boolean replaceExisting) throws IOException {
+        validateTarget(targetDirectory, target, target, replaceExisting);
+    }
+
+    private void validateTarget(Directory targetDirectory, MemoryPath target, MemoryPath originalTarget, boolean replaceExisting) throws IOException {
         if (targetDirectory == null) {
-            throw new NoSuchFileException(target.parentPath());
+            throw new NoSuchFileException(originalTarget.parentPath());
         }
         if (targetDirectory.isReadOnly()) {
-            throw new AccessDeniedException(target.parentPath());
+            throw new AccessDeniedException(originalTarget.parentPath());
         }
 
         Node targetNode = targetDirectory.get(target.fileName());
         if (targetNode != null && !replaceExisting) {
-            throw new FileAlreadyExistsException(target.path());
+            throw new FileAlreadyExistsException(originalTarget.path());
         }
         if (isNonEmptyDirectory(targetNode)) {
-            throw new DirectoryNotEmptyException(target.path());
+            throw new DirectoryNotEmptyException(originalTarget.path());
         }
     }
 
@@ -505,18 +680,26 @@ class MemoryFileStore extends FileStore {
     }
 
     synchronized boolean isSameFile(MemoryPath path, MemoryPath path2) throws IOException {
-        if (path.equals(path2)) {
+        MemoryPath normalizedPath = normalize(path);
+        MemoryPath normalizedPath2 = normalize(path2);
+        if (normalizedPath.equals(normalizedPath2)) {
             return true;
         }
-        return getExistingNode(path) == getExistingNode(path2);
+
+        return getExistingNode(normalizedPath, true) == getExistingNode(normalizedPath2, true);
     }
 
     synchronized boolean isHidden(MemoryPath path) throws IOException {
-        return getExistingNode(path).isHidden();
+        MemoryPath normalizedPath = normalize(path);
+        Node node = getExistingNode(normalizedPath);
+        // don't follow symbolic links
+        return node.isHidden();
     }
 
     synchronized FileStore getFileStore(MemoryPath path) throws IOException {
-        getExistingNode(path);
+        MemoryPath normalizedPath = normalize(path);
+        getExistingNode(normalizedPath);
+        // don't follow symbolic links
         return this;
     }
 
@@ -531,18 +714,23 @@ class MemoryFileStore extends FileStore {
             }
         }
 
-        Node node = getExistingNode(path);
+        MemoryPath normalizedPath = normalize(path);
+        // symbolic links should be followed
+        Node node = getExistingNode(normalizedPath, true);
         boolean isReadOnly = node.isReadOnly();
         if (w && isReadOnly) {
-            throw new AccessDeniedException(path.path());
+            throw new AccessDeniedException(normalizedPath.path());
         }
         if (x && !node.isDirectory()) {
-            throw new AccessDeniedException(path.path());
+            throw new AccessDeniedException(normalizedPath.path());
         }
     }
 
-    synchronized void setTimes(MemoryPath path, FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime) throws IOException {
-        Node node = getExistingNode(path);
+    synchronized void setTimes(MemoryPath path, FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime, boolean followLinks)
+            throws IOException {
+
+        MemoryPath normalizedPath = normalize(path);
+        Node node = getExistingNode(normalizedPath, followLinks);
 
         if (lastModifiedTime != null) {
             node.setLastModifiedTime(lastModifiedTime);
@@ -555,16 +743,22 @@ class MemoryFileStore extends FileStore {
         }
     }
 
-    synchronized void setReadOnly(MemoryPath path, boolean value) throws IOException {
-        getExistingNode(path).setReadOnly(value);
+    synchronized void setReadOnly(MemoryPath path, boolean value, boolean followLinks) throws IOException {
+        MemoryPath normalizedPath = normalize(path);
+        Node node = getExistingNode(normalizedPath, followLinks);
+        node.setReadOnly(value);
     }
 
-    synchronized void setHidden(MemoryPath path, boolean value) throws IOException {
-        getExistingNode(path).setHidden(value);
+    synchronized void setHidden(MemoryPath path, boolean value, boolean followLinks) throws IOException {
+        MemoryPath normalizedPath = normalize(path);
+        Node node = getExistingNode(normalizedPath, followLinks);
+        node.setHidden(value);
     }
 
-    synchronized MemoryFileAttributes readAttributes(MemoryPath path) throws IOException {
-        return getExistingNode(path).getAttributes();
+    synchronized MemoryFileAttributes readAttributes(MemoryPath path, boolean followLinks) throws IOException {
+        MemoryPath normalizedPath = normalize(path);
+        Node node = getExistingNode(normalizedPath, followLinks);
+        return node.getAttributes();
     }
 
     @SuppressWarnings("nls")
@@ -578,10 +772,7 @@ class MemoryFileStore extends FileStore {
             "memory:isRegularFile", "memory:isDirectory", "memory:isSymbolicLink", "memory:isOther", "memory:fileKey",
             "memory:readOnly", "memory:hidden")));
 
-    synchronized Map<String, Object> readAttributes(MemoryPath path, String attributes, @SuppressWarnings("unused") LinkOption... options)
-            throws IOException {
-        // no links are supported
-
+    synchronized Map<String, Object> readAttributes(MemoryPath path, String attributes, boolean followLinks) throws IOException {
         String view;
         int pos = attributes.indexOf(':');
         if (pos == -1) {
@@ -602,7 +793,8 @@ class MemoryFileStore extends FileStore {
 
         Map<String, Object> result = getAttributeMap(attributes, allowedAttributes);
 
-        Node node = getExistingNode(path);
+        MemoryPath normalizedPath = normalize(path);
+        Node node = getExistingNode(normalizedPath, followLinks);
 
         for (Map.Entry<String, Object> entry : result.entrySet()) {
             switch (entry.getKey()) {
@@ -679,10 +871,7 @@ class MemoryFileStore extends FileStore {
         return result;
     }
 
-    synchronized void setAttribute(MemoryPath path, String attribute, Object value, @SuppressWarnings("unused") LinkOption... options)
-            throws IOException {
-        // no links are supported
-
+    synchronized void setAttribute(MemoryPath path, String attribute, Object value, boolean followLinks) throws IOException {
         String view;
         int pos = attribute.indexOf(':');
         if (pos == -1) {
@@ -695,7 +884,8 @@ class MemoryFileStore extends FileStore {
             throw Messages.fileSystemProvider().unsupportedFileAttributeView(view);
         }
 
-        Node node = getExistingNode(path);
+        MemoryPath normalizedPath = normalize(path);
+        Node node = getExistingNode(normalizedPath, followLinks);
         setAttribute(node, attribute, value);
     }
 
@@ -754,6 +944,8 @@ class MemoryFileStore extends FileStore {
         abstract boolean isRegularFile();
 
         abstract boolean isDirectory();
+
+        abstract boolean isSymbolicLink();
 
         abstract long getSize();
 
@@ -886,7 +1078,7 @@ class MemoryFileStore extends FileStore {
 
             @Override
             public boolean isSymbolicLink() {
-                return false;
+                return Node.this.isSymbolicLink();
             }
 
             @Override
@@ -927,6 +1119,11 @@ class MemoryFileStore extends FileStore {
         @Override
         boolean isDirectory() {
             return true;
+        }
+
+        @Override
+        boolean isSymbolicLink() {
+            return false;
         }
 
         @Override
@@ -998,6 +1195,11 @@ class MemoryFileStore extends FileStore {
 
         @Override
         boolean isDirectory() {
+            return false;
+        }
+
+        @Override
+        boolean isSymbolicLink() {
             return false;
         }
 
@@ -1417,7 +1619,7 @@ class MemoryFileStore extends FileStore {
             }
 
             @Override
-            public void force(boolean metaData) throws IOException {
+            public void force(boolean metaData) {
                 // no need to do anything
             }
 
@@ -1583,7 +1785,7 @@ class MemoryFileStore extends FileStore {
             }
 
             @Override
-            public MappedByteBuffer map(MapMode mode, long position, long size) throws IOException {
+            public MappedByteBuffer map(MapMode mode, long position, long size) {
                 throw Messages.unsupportedOperation(FileChannel.class, "map"); //$NON-NLS-1$
             }
 
@@ -1680,6 +1882,45 @@ class MemoryFileStore extends FileStore {
                     }
                 }
             }
+        }
+    }
+
+    static final class Link extends Node {
+        private static final int MAX_DEPTH = 100;
+
+        final String target;
+
+        Link(String target) {
+            this.target = Objects.requireNonNull(target);
+        }
+
+        @Override
+        boolean isRegularFile() {
+            return false;
+        }
+
+        @Override
+        boolean isDirectory() {
+            return false;
+        }
+
+        @Override
+        boolean isSymbolicLink() {
+            return true;
+        }
+
+        @Override
+        long getSize() {
+            return 0;
+        }
+
+        @Override
+        Node copy(boolean copyAttributes) {
+            Link copy = new Link(target);
+            if (copyAttributes) {
+                copyAttributes(copy);
+            }
+            return copy;
         }
     }
 

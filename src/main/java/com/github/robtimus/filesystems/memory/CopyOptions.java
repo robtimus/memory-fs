@@ -31,46 +31,53 @@ final class CopyOptions {
 
     public final boolean replaceExisting;
     public final boolean copyAttributes;
+    public final boolean followLinks;
 
-    private CopyOptions(boolean replaceExisting, boolean copyAttributes) {
+    private CopyOptions(boolean replaceExisting, boolean copyAttributes, boolean followLinks) {
         this.replaceExisting = replaceExisting;
         this.copyAttributes = copyAttributes;
+        this.followLinks = followLinks;
     }
 
     static CopyOptions forCopy(CopyOption... options) {
 
         boolean replaceExisting = false;
         boolean copyAttributes = false;
+        boolean followLinks = true;
 
         for (CopyOption option : options) {
             if (option == StandardCopyOption.REPLACE_EXISTING) {
                 replaceExisting = true;
             } else if (option == StandardCopyOption.COPY_ATTRIBUTES) {
                 copyAttributes = true;
+            } else if (option == LinkOption.NOFOLLOW_LINKS) {
+                followLinks = false;
             } else if (!isIgnoredCopyOption(option)) {
                 throw Messages.fileSystemProvider().unsupportedCopyOption(option);
             }
         }
 
-        return new CopyOptions(replaceExisting, copyAttributes);
+        return new CopyOptions(replaceExisting, copyAttributes, followLinks);
     }
 
     static CopyOptions forMove(CopyOption... options) {
         boolean replaceExisting = false;
+        boolean followLinks = true;
 
         for (CopyOption option : options) {
             if (option == StandardCopyOption.REPLACE_EXISTING) {
                 replaceExisting = true;
+            } else if (option == LinkOption.NOFOLLOW_LINKS) {
+                followLinks = false;
             } else if (!isIgnoredCopyOption(option)) {
                 throw Messages.fileSystemProvider().unsupportedCopyOption(option);
             }
         }
 
-        return new CopyOptions(replaceExisting, false);
+        return new CopyOptions(replaceExisting, false, followLinks);
     }
 
     private static boolean isIgnoredCopyOption(CopyOption option) {
-        return option == StandardCopyOption.ATOMIC_MOVE
-                || option == LinkOption.NOFOLLOW_LINKS;
+        return option == StandardCopyOption.ATOMIC_MOVE;
     }
 }

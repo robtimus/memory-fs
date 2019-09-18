@@ -218,64 +218,64 @@ public class MemoryFileSystemProviderTest {
     public void testGetFileAttributeViewReadAttributes() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
-        doReturn(null).when(fileStore).readAttributes(path);
+        doReturn(null).when(fileStore).readAttributes(path, true);
 
         BasicFileAttributeView view = provider.getFileAttributeView(path, BasicFileAttributeView.class);
         assertNotNull(view);
 
-        verify(fileStore, never()).readAttributes(any(MemoryPath.class));
+        verify(fileStore, never()).readAttributes(any(MemoryPath.class), anyBoolean());
 
         view.readAttributes();
 
-        verify(fileStore).readAttributes(path);
+        verify(fileStore).readAttributes(path, true);
     }
 
     @Test
     public void testGetFileAttributeViewSetTimes() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
-        doNothing().when(fileStore).setTimes(eq(path), any(FileTime.class), any(FileTime.class), any(FileTime.class));
+        doNothing().when(fileStore).setTimes(eq(path), any(FileTime.class), any(FileTime.class), any(FileTime.class), anyBoolean());
 
         BasicFileAttributeView view = provider.getFileAttributeView(path, BasicFileAttributeView.class);
         assertNotNull(view);
 
-        verify(fileStore, never()).setTimes(any(MemoryPath.class), any(FileTime.class), any(FileTime.class), any(FileTime.class));
+        verify(fileStore, never()).setTimes(any(MemoryPath.class), any(FileTime.class), any(FileTime.class), any(FileTime.class), anyBoolean());
 
         view.setTimes(null, null, null);
 
-        verify(fileStore).setTimes(path, null, null, null);
+        verify(fileStore).setTimes(path, null, null, null, true);
     }
 
     @Test
     public void testGetFileAttributeViewSetReadOnly() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
-        doNothing().when(fileStore).setReadOnly(eq(path), anyBoolean());
+        doNothing().when(fileStore).setReadOnly(eq(path), anyBoolean(), anyBoolean());
 
         MemoryFileAttributeView view = provider.getFileAttributeView(path, MemoryFileAttributeView.class);
         assertNotNull(view);
 
-        verify(fileStore, never()).setReadOnly(any(MemoryPath.class), anyBoolean());
+        verify(fileStore, never()).setReadOnly(any(MemoryPath.class), anyBoolean(), anyBoolean());
 
         view.setReadOnly(true);
 
-        verify(fileStore).setReadOnly(path, true);
+        verify(fileStore).setReadOnly(path, true, true);
     }
 
     @Test
     public void testGetFileAttributeViewSetHidden() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
-        doNothing().when(fileStore).setHidden(eq(path), anyBoolean());
+        doNothing().when(fileStore).setHidden(eq(path), anyBoolean(), anyBoolean());
 
         MemoryFileAttributeView view = provider.getFileAttributeView(path, MemoryFileAttributeView.class);
         assertNotNull(view);
 
-        verify(fileStore, never()).setHidden(any(MemoryPath.class), anyBoolean());
+        verify(fileStore, never()).setHidden(any(MemoryPath.class), anyBoolean(), anyBoolean());
 
         view.setHidden(true);
 
-        verify(fileStore).setHidden(path, true);
+        verify(fileStore).setHidden(path, true, true);
     }
 
     @Test
@@ -369,6 +369,29 @@ public class MemoryFileSystemProviderTest {
             MemoryFileSystemProvider.getContent(foo);
         } finally {
             Files.delete(foo);
+        }
+    }
+
+    @Test
+    public void testGetContentLink() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path link = Paths.get(URI.create("memory:/link"));
+        Files.createFile(foo);
+        try {
+            Files.createSymbolicLink(link, foo);
+
+            assertArrayEquals(new byte[0], MemoryFileSystemProvider.getContent(link));
+
+            byte[] newContent = new byte[100];
+            new Random().nextBytes(newContent);
+
+            Files.write(foo, newContent);
+
+            assertArrayEquals(newContent, MemoryFileSystemProvider.getContent(link));
+
+        } finally {
+            Files.delete(foo);
+            Files.deleteIfExists(link);
         }
     }
 
@@ -497,6 +520,28 @@ public class MemoryFileSystemProviderTest {
 
         } finally {
             Files.delete(foo);
+        }
+    }
+
+    @Test
+    public void testSetContentLink() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path link = Paths.get(URI.create("memory:/link"));
+        Files.createFile(foo);
+        try {
+            Files.write(foo, new byte[] { 1, 2, 3 });
+            Files.createSymbolicLink(link, foo);
+
+            byte[] newContent = new byte[100];
+            new Random().nextBytes(newContent);
+
+            MemoryFileSystemProvider.setContent(link, newContent);
+
+            assertArrayEquals(newContent, Files.readAllBytes(foo));
+
+        } finally {
+            Files.delete(foo);
+            Files.deleteIfExists(link);
         }
     }
 

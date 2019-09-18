@@ -18,6 +18,7 @@
 package com.github.robtimus.filesystems.memory;
 
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -38,8 +39,10 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystemException;
+import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
+import java.nio.file.NotLinkException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -49,6 +52,7 @@ import java.nio.file.attribute.FileTime;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import org.junit.Before;
@@ -56,6 +60,7 @@ import org.junit.Test;
 import com.github.robtimus.filesystems.attribute.SimpleFileAttribute;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.Directory;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.File;
+import com.github.robtimus.filesystems.memory.MemoryFileStore.Link;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.Node;
 
 @SuppressWarnings({ "nls", "javadoc" })
@@ -88,8 +93,14 @@ public class MemoryFileStoreTest {
     public void testToRealPath() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
+        foo.add("baz", new Link("bar"));
 
         root.add("bar", new Directory());
+        root.add("baz", new Link("foo"));
+        root.add("link", new Link("baz"));
+        foo.add("link2", new Link("/baz"));
+
+        root.add("broken", new Link("not existing"));
 
         testToRealPath("/", "/");
         testToRealPath("/foo/bar", "/foo/bar");
@@ -100,16 +111,42 @@ public class MemoryFileStoreTest {
         testToRealPath("foo/bar", "/foo/bar");
         testToRealPath("foo/../bar", "/bar");
         testToRealPath("foo/./bar", "/foo/bar");
+
+        testToRealPath("/foo/baz", "/foo/bar");
+        testToRealPath("/foo/baz", "/foo/baz", LinkOption.NOFOLLOW_LINKS);
+        testToRealPath("/baz", "/foo");
+        testToRealPath("/baz", "/baz", LinkOption.NOFOLLOW_LINKS);
+        testToRealPath("/link", "/foo");
+        testToRealPath("/link", "/link", LinkOption.NOFOLLOW_LINKS);
+        testToRealPath("/foo/link2", "/foo");
+        testToRealPath("/foo/link2", "/foo/link2", LinkOption.NOFOLLOW_LINKS);
+
+        testToRealPath("/broken", "/broken", LinkOption.NOFOLLOW_LINKS);
     }
 
-    private void testToRealPath(String path, String expected) throws IOException {
+    private void testToRealPath(String path, String expected, LinkOption... linkOptions) throws IOException {
         MemoryPath expectedPath = createPath(expected);
-        Path actual = createPath(path).toRealPath();
+        Path actual = createPath(path).toRealPath(linkOptions);
         assertEquals(expectedPath, actual);
     }
 
     @Test(expected = NoSuchFileException.class)
     public void testToRealPathNotExisting() throws IOException {
+        createPath("/foo").toRealPath();
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testToRealPathBrokenLink() throws IOException {
+        root.add("foo", new Link("bar"));
+
+        createPath("/foo").toRealPath();
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testToRealPathLinkLoop() throws IOException {
+        root.add("foo", new Link("bar"));
+        root.add("bar", new Link("foo"));
+
         createPath("/foo").toRealPath();
     }
 
@@ -156,6 +193,40 @@ public class MemoryFileStoreTest {
         } finally {
             assertSame(foo, root.get("foo"));
             assertTrue(foo.isEmpty());
+        }
+    }
+
+    @Test
+    public void testNewInputStreamWithLinks() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        foo.add("baz", new Link("bar"));
+        root.add("baz", new Link("foo"));
+        root.add("link", new Link("baz"));
+
+        try (InputStream input = provider.newInputStream(createPath("/link/baz"))) {
+            // don't do anything with the stream, there's a separate test for that
+        }
+        assertSame(bar, foo.get("bar"));
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testNewInputStreamWithBrokenLink() throws IOException {
+        root.add("foo", new Link("bar"));
+
+        try (InputStream input = provider.newInputStream(createPath("/foo"))) {
+            // don't do anything with the stream, there's a separate test for that
+        }
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testNewInputStreamWithLinkLoop() throws IOException {
+        root.add("foo", new Link("bar"));
+        root.add("bar", new Link("foo"));
+
+        try (InputStream input = provider.newInputStream(createPath("/foo"))) {
+            // don't do anything with the stream, there's a separate test for that
         }
     }
 
@@ -437,6 +508,50 @@ public class MemoryFileStoreTest {
         }
     }
 
+    @Test
+    public void testNewOutputStreamWithLinks() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        foo.add("baz", new Link("bar"));
+        root.add("baz", new Link("foo"));
+        root.add("link", new Link("baz"));
+
+        try (OutputStream input = provider.newOutputStream(createPath("/link/baz"))) {
+            // don't do anything with the stream, there's a separate test for that
+        }
+        assertSame(bar, foo.get("bar"));
+    }
+
+    @Test
+    public void testNewOutputStreamBrokenWithLinkToExistingFolder() throws IOException {
+        root.add("foo", new Link("bar"));
+
+        try (OutputStream input = provider.newOutputStream(createPath("/foo"))) {
+            // don't do anything with the stream, there's a separate test for that
+        }
+        assertThat(root.get("bar"), instanceOf(File.class));
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testNewOutputStreamBrokenWithLinkToNonExistingFolder() throws IOException {
+        root.add("foo", new Link("bar/baz"));
+
+        try (OutputStream input = provider.newOutputStream(createPath("/foo"))) {
+            // don't do anything with the stream, there's a separate test for that
+        }
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testNewOutputStreamWithLinkLoop() throws IOException {
+        root.add("foo", new Link("bar"));
+        root.add("bar", new Link("foo"));
+
+        try (OutputStream input = provider.newOutputStream(createPath("/foo"))) {
+            // don't do anything with the stream, there's a separate test for that
+        }
+    }
+
     // MemoryFileStore.newByteChannel
 
     @Test
@@ -610,6 +725,43 @@ public class MemoryFileStoreTest {
         } finally {
             assertSame(foo, root.get("foo"));
             assertTrue(foo.isEmpty());
+        }
+    }
+
+    @Test
+    public void testNewByteChannelReadWithLinks() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        foo.add("baz", new Link("bar"));
+        root.add("baz", new Link("foo"));
+        root.add("link", new Link("baz"));
+
+        Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
+        try (SeekableByteChannel channel = provider.newByteChannel(createPath("/link/baz"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+        assertSame(bar, foo.get("bar"));
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testNewByteChannelReadWithBrokenLink() throws IOException {
+        root.add("foo", new Link("bar"));
+
+        Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
+        try (SeekableByteChannel channel = provider.newByteChannel(createPath("/foo"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testNewByteChannelReadWithLinkLoop() throws IOException {
+        root.add("foo", new Link("bar"));
+        root.add("bar", new Link("foo"));
+
+        Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
+        try (SeekableByteChannel channel = provider.newByteChannel(createPath("/foo"), options)) {
+            // don't do anything with the channel, there's a separate test for that
         }
     }
 
@@ -1005,6 +1157,54 @@ public class MemoryFileStoreTest {
     }
 
     @Test
+    public void testNewByteChannelWriteWithLinks() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        foo.add("baz", new Link("bar"));
+        root.add("baz", new Link("foo"));
+        root.add("link", new Link("baz"));
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
+        try (SeekableByteChannel channel = provider.newByteChannel(createPath("/link/baz"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+        assertSame(bar, foo.get("bar"));
+    }
+
+    @Test
+    public void testNewByteChannelWriteBrokenWithLinkToExistingFolder() throws IOException {
+        root.add("foo", new Link("bar"));
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+        try (SeekableByteChannel channel = provider.newByteChannel(createPath("/foo"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+        assertThat(root.get("bar"), instanceOf(File.class));
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testNewByteChannelWriteBrokenWithLinkToNonExistingFolder() throws IOException {
+        root.add("foo", new Link("bar/baz"));
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
+        try (SeekableByteChannel channel = provider.newByteChannel(createPath("/foo"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testNewByteChannelWriteWithLinkLoop() throws IOException {
+        root.add("foo", new Link("bar"));
+        root.add("bar", new Link("foo"));
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
+        try (SeekableByteChannel channel = provider.newByteChannel(createPath("/foo"), options)) {
+            // don't do anything with the channel, there's a separate test for that
+        }
+    }
+
+    @Test
     public void testNewByteChannelReadWriteExisting() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
@@ -1396,6 +1596,40 @@ public class MemoryFileStoreTest {
         provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE);
     }
 
+    @Test
+    public void testNewDirectoryStreamWithLinks() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        Directory bar = (Directory) foo.add("bar", new Directory());
+        bar.add("file", new File());
+
+        foo.add("baz", new Link("bar"));
+        root.add("baz", new Link("foo"));
+        root.add("link", new Link("baz"));
+
+        try (DirectoryStream<Path> stream = provider.newDirectoryStream(createPath("/link/baz"), AcceptAllFilter.INSTANCE)) {
+            assertNotNull(stream);
+            Iterator<Path> iterator = stream.iterator();
+            assertTrue(iterator.hasNext());
+            assertEquals(createPath("/link/baz/file"), iterator.next());
+            assertFalse(iterator.hasNext());
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testNewDirectoryStreamWithBrokenLink() throws IOException {
+        root.add("foo", new Link("bar"));
+
+        provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE);
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testNewDirectoryStreamWithLinkLoop() throws IOException {
+        root.add("foo", new Link("bar"));
+        root.add("bar", new Link("foo"));
+
+        provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE);
+    }
+
     private static final class AcceptAllFilter implements Filter<Path> {
 
         private static final AcceptAllFilter INSTANCE = new AcceptAllFilter();
@@ -1517,6 +1751,136 @@ public class MemoryFileStoreTest {
         }
     }
 
+    // MemoryFileStore.createSymbolicLink
+
+    @Test
+    public void testCreateSymbolicLink() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        provider.createSymbolicLink(createPath("/link"), createPath("/foo/bar"));
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+        assertThat(root.get("link"), instanceOf(Link.class));
+
+        Link link = (Link) root.get("link");
+        assertEquals("/foo/bar", link.target);
+    }
+
+    @Test
+    public void testCreateSymbolicLinkCurrentDirectory() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        provider.createSymbolicLink(createPath("/foo/link"), createPath("."));
+
+        assertSame(foo, root.get("foo"));
+        assertThat(foo.get("link"), instanceOf(Link.class));
+
+        Link link = (Link) foo.get("link");
+        assertEquals(".", link.target);
+        assertEquals(createPath("/foo"), createPath("/foo/link").toRealPath());
+    }
+
+    @Test
+    public void testCreateSymbolicLinkEmpty() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        provider.createSymbolicLink(createPath("/foo/link"), createPath(""));
+
+        assertSame(foo, root.get("foo"));
+        assertThat(foo.get("link"), instanceOf(Link.class));
+
+        Link link = (Link) foo.get("link");
+        assertEquals("", link.target);
+        assertEquals(createPath("/foo"), createPath("/foo/link").toRealPath());
+    }
+
+    @Test(expected = FileAlreadyExistsException.class)
+    public void testCreateSymbolicLinkExisting() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+
+        try {
+            provider.createSymbolicLink(createPath("/foo/bar"), createPath("/bar"));
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertSame(bar, foo.get("bar"));
+        }
+    }
+
+    @Test
+    public void testCreateSymbolicLinkWithAttributes() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", false),
+                new SimpleFileAttribute<>("memory:hidden", true),
+        };
+
+        provider.createSymbolicLink(createPath("/link"), createPath("/foo/bar"), attributes);
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+        assertThat(root.get("link"), instanceOf(Link.class));
+
+        Link link = (Link) root.get("link");
+        assertEquals("/foo/bar", link.target);
+        assertEquals(123456L, link.getLastModifiedTime().toMillis());
+        assertEquals(1234567L, link.getLastAccessTime().toMillis());
+        assertEquals(12345678L, link.getCreationTime().toMillis());
+        assertFalse(link.isReadOnly());
+        assertTrue(link.isHidden());
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testCreateSymbolicLinkWithInvalidAttributes() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", true),
+                new SimpleFileAttribute<>("memory:hidden", true),
+                new SimpleFileAttribute<>("something:else", "foo"),
+        };
+
+        try {
+            provider.createSymbolicLink(createPath("/link"), createPath("/foo/bar"), attributes);
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertTrue(foo.isEmpty());
+            assertNull(root.get("link"));
+        }
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testCreateSymbolicLinkNonExistingParent() throws IOException {
+
+        try {
+            provider.createSymbolicLink(createPath("/foo/link"), createPath("/bar"));
+        } finally {
+            assertTrue(root.isEmpty());
+        }
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testCreateSymbolicLinkReadOnlyParent() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        foo.setReadOnly(true);
+
+        try {
+            provider.createSymbolicLink(createPath("/foo/link"), createPath("/bar"));
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertTrue(foo.isEmpty());
+        }
+    }
+
     // MemoryFileStore.createLink
 
     @Test
@@ -1535,6 +1899,18 @@ public class MemoryFileStoreTest {
 
         try {
             provider.createLink(createPath("/bar"), createPath("foo"));
+        } finally {
+            assertSame(foo, root.get("foo"));
+            assertNull(root.get("bar"));
+        }
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testCreateLinkToEmpty() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        try {
+            provider.createLink(createPath("/bar"), createPath(""));
         } finally {
             assertSame(foo, root.get("foo"));
             assertNull(root.get("bar"));
@@ -1658,6 +2034,27 @@ public class MemoryFileStoreTest {
         }
     }
 
+    @Test
+    public void testDeleteLink() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+        bar.setContent("hello".getBytes());
+        foo.add("link", new Link("bar"));
+
+        assertArrayEquals("hello".getBytes(), store.getContent(createPath("/foo/link")));
+
+        // content:
+        // d /foo
+        // f /foo/bar
+        // l /foo/link -> /foo/bar
+
+        provider.delete(createPath("/foo/link"));
+
+        assertSame(foo, root.get("foo"));
+        assertSame(bar, foo.get("bar"));
+        assertNull(foo.get("link"));
+    }
+
     @Test(expected = AccessDeniedException.class)
     public void testDeleteReadOnlyParent() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
@@ -1739,6 +2136,27 @@ public class MemoryFileStoreTest {
         }
     }
 
+    @Test
+    public void testDeleteIfExistsLink() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File bar = (File) foo.add("bar", new File());
+        bar.setContent("hello".getBytes());
+        foo.add("link", new Link("bar"));
+
+        assertArrayEquals("hello".getBytes(), store.getContent(createPath("/foo/link")));
+
+        // content:
+        // d /foo
+        // f /foo/bar
+        // l /foo/link -> /foo/bar
+
+        provider.deleteIfExists(createPath("/foo/link"));
+
+        assertSame(foo, root.get("foo"));
+        assertSame(bar, foo.get("bar"));
+        assertNull(foo.get("link"));
+    }
+
     @Test(expected = AccessDeniedException.class)
     public void testDeleteIfExistsReadOnlyParent() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
@@ -1756,6 +2174,35 @@ public class MemoryFileStoreTest {
             assertSame(foo, root.get("foo"));
             assertSame(bar, foo.get("bar"));
         }
+    }
+
+    // MemoryFileStore.readSymbolicLink
+
+    @Test
+    public void testReadSymbolicLink() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        foo.add("bar", new File());
+        foo.add("link", new Link("bar"));
+
+        assertEquals(createPath("bar"), provider.readSymbolicLink(createPath("/foo/link")));
+    }
+
+    @Test(expected = NotLinkException.class)
+    public void testReadSymbolicLinkFile() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        foo.add("bar", new File());
+        foo.add("link", new Link("bar"));
+
+        provider.readSymbolicLink(createPath("/foo/bar"));
+    }
+
+    @Test(expected = NotLinkException.class)
+    public void testReadSymbolicLinkDirectory() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        foo.add("bar", new File());
+        foo.add("link", new Link("bar"));
+
+        provider.readSymbolicLink(createPath("/foo"));
     }
 
     // MemoryFileStore.copy
@@ -2133,6 +2580,138 @@ public class MemoryFileStoreTest {
         }
     }
 
+    @Test
+    public void testCopyLinkFollowLinks() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File baz = (File) root.add("baz", new File());
+        Link link = (Link) root.add("link", new Link("baz"));
+
+        // content:
+        // d /foo
+        // f /baz
+        // l /link -> /baz
+
+        baz.setHidden(true);
+
+        CopyOption[] options = {};
+        provider.copy(createPath("/link"), createPath("/foo/bar"), options);
+
+        assertThat(foo.get("bar"), instanceOf(File.class));
+        assertSame(foo, root.get("foo"));
+        assertNotSame(baz, foo.get("bar"));
+        assertSame(baz, root.get("baz"));
+        assertFalse(foo.get("bar").isHidden());
+        assertSame(link, root.get("link"));
+    }
+
+    @Test
+    public void testCopyLinkNoFollowLinks() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File baz = (File) root.add("baz", new File());
+        Link link1 = (Link) root.add("link1", new Link("baz"));
+        Link link2 = (Link) root.add("link2", new Link("link1"));
+
+        // content:
+        // d /foo
+        // f /baz
+        // l /link1 -> /baz
+        // l /link2 -> /link1
+
+        baz.setHidden(true);
+
+        CopyOption[] options = { LinkOption.NOFOLLOW_LINKS };
+        provider.copy(createPath("/link2"), createPath("/foo/bar"), options);
+
+        assertThat(foo.get("bar"), instanceOf(Link.class));
+        assertSame(foo, root.get("foo"));
+        assertSame(baz, root.get("baz"));
+        assertFalse(foo.get("bar").isHidden());
+        assertNotSame(baz, foo.get("link1"));
+        assertSame(link1, root.get("link1"));
+        assertNotSame(baz, foo.get("link2"));
+        assertSame(link2, root.get("link2"));
+
+        Link bar = (Link) foo.get("bar");
+        assertEquals("baz", bar.target);
+    }
+
+    @Test
+    public void testCopyLinkNoFollowLinksWithAttributes() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File baz = (File) root.add("baz", new File());
+        Link link = (Link) root.add("link", new Link("baz"));
+
+        // content:
+        // d /foo
+        // f /baz
+        // l /link -> /baz
+
+        link.setHidden(true);
+
+        CopyOption[] options = { StandardCopyOption.COPY_ATTRIBUTES, LinkOption.NOFOLLOW_LINKS };
+        provider.copy(createPath("/link"), createPath("/foo/bar"), options);
+
+        assertThat(foo.get("bar"), instanceOf(Link.class));
+        assertSame(foo, root.get("foo"));
+        assertSame(baz, root.get("baz"));
+        assertNotSame(baz, foo.get("link"));
+        assertSame(link, root.get("link"));
+
+        Link bar = (Link) foo.get("bar");
+        assertTrue(bar.isHidden());
+        assertEquals(link.getLastModifiedTime(), bar.getLastModifiedTime());
+        assertEquals(link.getLastAccessTime(), bar.getLastAccessTime());
+        assertEquals(link.getCreationTime(), bar.getCreationTime());
+    }
+
+    @Test
+    public void testCopyLinkBrokenNoFollowLinks() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File baz = (File) root.add("baz", new File());
+        Link link1 = (Link) root.add("link1", new Link("baz"));
+        Link link2 = (Link) root.add("link2", new Link("link"));
+
+        // content:
+        // d /foo
+        // f /baz
+        // l /link1 -> /baz
+        // l /link2 -> /link
+
+        baz.setHidden(true);
+
+        CopyOption[] options = { LinkOption.NOFOLLOW_LINKS };
+        provider.copy(createPath("/link2"), createPath("/foo/bar"), options);
+
+        assertThat(foo.get("bar"), instanceOf(Link.class));
+        assertSame(foo, root.get("foo"));
+        assertSame(baz, root.get("baz"));
+        assertFalse(foo.get("bar").isHidden());
+        assertNotSame(baz, foo.get("link1"));
+        assertSame(link1, root.get("link1"));
+        assertNotSame(baz, foo.get("link2"));
+        assertSame(link2, root.get("link2"));
+
+        Link bar = (Link) foo.get("bar");
+        assertEquals("link", bar.target);
+    }
+
+    @Test(expected = FileSystemException.class)
+    public void testCopyLinkLoopNoFollowLinks() throws IOException {
+        root.add("foo", new Directory());
+        root.add("baz", new File());
+        root.add("link1", new Link("link2"));
+        root.add("link2", new Link("link1"));
+
+        // content:
+        // d /foo
+        // f /baz
+        // l /link1 -> /link2
+        // l /link2 -> /link1
+
+        CopyOption[] options = { LinkOption.NOFOLLOW_LINKS };
+        provider.copy(createPath("/link2"), createPath("/foo/bar"), options);
+    }
+
     // MemoryFileStore.move
 
     @Test
@@ -2446,6 +3025,26 @@ public class MemoryFileStoreTest {
         }
     }
 
+    @Test
+    public void testMoveLink() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        File baz = (File) root.add("baz", new File());
+        Link link = (Link) root.add("link", new Link("baz"));
+
+        // content:
+        // d /foo
+        // f /baz
+        // l /link -> /baz
+
+        CopyOption[] options = {};
+        provider.move(createPath("/link"), createPath("/foo/bar"), options);
+
+        assertSame(foo, root.get("foo"));
+        assertSame(baz, root.get("baz"));
+        assertSame(link, foo.get("bar"));
+        assertNull(root.get("link"));
+    }
+
     // MemoryFileStore.isSameFile
 
     @Test
@@ -2466,6 +3065,7 @@ public class MemoryFileStoreTest {
     public void testIsSameFileExisting() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
+        foo.add("link", new Link("bar"));
 
         assertTrue(provider.isSameFile(createPath("/"), createPath("")));
         assertTrue(provider.isSameFile(createPath("/foo"), createPath("foo")));
@@ -2474,6 +3074,15 @@ public class MemoryFileStoreTest {
         assertTrue(provider.isSameFile(createPath(""), createPath("/")));
         assertTrue(provider.isSameFile(createPath("foo"), createPath("/foo")));
         assertTrue(provider.isSameFile(createPath("foo/bar"), createPath("/foo/bar")));
+
+        assertTrue(provider.isSameFile(createPath("/foo/bar"), createPath("foo/link")));
+        assertTrue(provider.isSameFile(createPath("/foo/bar"), createPath("/foo/link")));
+        assertTrue(provider.isSameFile(createPath("foo/bar"), createPath("foo/link")));
+        assertTrue(provider.isSameFile(createPath("foo/bar"), createPath("/foo/link")));
+        assertTrue(provider.isSameFile(createPath("/foo/link"), createPath("foo/bar")));
+        assertTrue(provider.isSameFile(createPath("/foo/link"), createPath("/foo/bar")));
+        assertTrue(provider.isSameFile(createPath("foo/link"), createPath("foo/bar")));
+        assertTrue(provider.isSameFile(createPath("foo/link"), createPath("/foo/bar")));
 
         assertFalse(provider.isSameFile(createPath("foo"), createPath("foo/bar")));
     }
@@ -2574,6 +3183,26 @@ public class MemoryFileStoreTest {
         provider.checkAccess(createPath("/foo/bar"), AccessMode.EXECUTE);
     }
 
+    @Test
+    public void testCheckAccessLink() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        foo.add("bar", new Directory());
+        Link link = (Link) foo.add("link", new Link("bar"));
+        link.setReadOnly(true);
+
+        provider.checkAccess(createPath("/foo/link"), AccessMode.WRITE);
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testCheckAccessBrokenLink() throws IOException {
+        Directory foo = (Directory) root.add("foo", new Directory());
+        foo.add("bar", new Directory());
+        Link link = (Link) foo.add("link", new Link("baz"));
+        link.setReadOnly(true);
+
+        provider.checkAccess(createPath("/foo/link"), AccessMode.WRITE);
+    }
+
     // MemoryFileStore.setTimes
 
     @Test
@@ -2587,7 +3216,7 @@ public class MemoryFileStoreTest {
         FileTime newLastAccess = FileTime.fromMillis(oldLastAccess.toMillis() + 10000);
         FileTime newCreation = FileTime.fromMillis(oldCreation.toMillis() + 15000);
 
-        createPath("/foo").setTimes(newLastModified, newLastAccess, newCreation);
+        createPath("/foo").setTimes(newLastModified, newLastAccess, newCreation, true);
 
         assertEquals(newLastModified, foo.getLastModifiedTime());
         assertEquals(newLastAccess, foo.getLastAccessTime());
@@ -2603,7 +3232,7 @@ public class MemoryFileStoreTest {
 
         FileTime newLastModified = FileTime.fromMillis(oldLastModified.toMillis() + 5000);
 
-        createPath("/foo").setTimes(newLastModified, null, null);
+        createPath("/foo").setTimes(newLastModified, null, null, true);
 
         assertEquals(newLastModified, foo.getLastModifiedTime());
         assertEquals(oldLastAccess, foo.getLastAccessTime());
@@ -2619,7 +3248,7 @@ public class MemoryFileStoreTest {
 
         FileTime newLastAccess = FileTime.fromMillis(oldLastAccess.toMillis() + 5000);
 
-        createPath("/foo").setTimes(null, newLastAccess, null);
+        createPath("/foo").setTimes(null, newLastAccess, null, true);
 
         assertEquals(oldLastModified, foo.getLastModifiedTime());
         assertEquals(newLastAccess, foo.getLastAccessTime());
@@ -2635,7 +3264,7 @@ public class MemoryFileStoreTest {
 
         FileTime newCreation = FileTime.fromMillis(oldCreation.toMillis() + 5000);
 
-        createPath("/foo").setTimes(null, null, newCreation);
+        createPath("/foo").setTimes(null, null, newCreation, true);
 
         assertEquals(oldLastModified, foo.getLastModifiedTime());
         assertEquals(oldLastAccess, foo.getLastAccessTime());
@@ -2650,16 +3279,16 @@ public class MemoryFileStoreTest {
 
         assertFalse(foo.isReadOnly());
 
-        createPath("/foo").setReadOnly(true);
+        createPath("/foo").setReadOnly(true, true);
         assertTrue(foo.isReadOnly());
 
-        createPath("/foo").setReadOnly(false);
+        createPath("/foo").setReadOnly(false, true);
         assertFalse(foo.isReadOnly());
     }
 
     @Test(expected = NoSuchFileException.class)
     public void testSetReadOnlyNonExisting() throws IOException {
-        createPath("/foo").setReadOnly(true);
+        createPath("/foo").setReadOnly(true, true);
     }
 
     // MemoryFileStore.setHidden
@@ -2670,34 +3299,57 @@ public class MemoryFileStoreTest {
 
         assertFalse(foo.isHidden());
 
-        createPath("/foo").setHidden(true);
+        createPath("/foo").setHidden(true, true);
         assertTrue(foo.isHidden());
 
-        createPath("/foo").setHidden(false);
+        createPath("/foo").setHidden(false, true);
         assertFalse(foo.isHidden());
     }
 
     @Test(expected = NoSuchFileException.class)
     public void testSetHiddenNonExisting() throws IOException {
-        createPath("/foo").setHidden(true);
+        createPath("/foo").setHidden(true, true);
     }
 
     // MemoryFileStore.readAttributes (MemoryFileAttributes variant)
 
     @Test
-    public void testReadAttributes() throws IOException {
+    public void testReadAttributesDirectory() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         foo.setReadOnly(true);
         foo.setHidden(true);
 
-        MemoryFileAttributes attributes = createPath("/foo").readAttributes();
+        MemoryFileAttributes attributes = createPath("/foo").readAttributes(true);
 
         assertEquals(foo.getLastModifiedTime(), attributes.lastModifiedTime());
         assertEquals(foo.getLastAccessTime(), attributes.lastAccessTime());
         assertEquals(foo.getCreationTime(), attributes.creationTime());
-        assertEquals(foo.isRegularFile(), attributes.isRegularFile());
-        assertEquals(foo.isDirectory(), attributes.isDirectory());
+        assertFalse(attributes.isRegularFile());
+        assertTrue(attributes.isDirectory());
+        assertFalse(attributes.isSymbolicLink());
+        assertFalse(attributes.isOther());
+        assertEquals(0, attributes.size());
+        assertNull(attributes.fileKey());
+
+        assertTrue(attributes.isReadOnly());
+        assertTrue(attributes.isHidden());
+    }
+
+    @Test
+    public void testReadAttributesFile() throws IOException {
+        File foo = (File) root.add("foo", new File());
+
+        foo.setReadOnly(true);
+        foo.setHidden(true);
+
+        MemoryFileAttributes attributes = createPath("/foo").readAttributes(true);
+
+        assertEquals(foo.getLastModifiedTime(), attributes.lastModifiedTime());
+        assertEquals(foo.getLastAccessTime(), attributes.lastAccessTime());
+        assertEquals(foo.getCreationTime(), attributes.creationTime());
+        assertTrue(attributes.isRegularFile());
+        assertFalse(attributes.isDirectory());
         assertFalse(attributes.isSymbolicLink());
         assertFalse(attributes.isOther());
         assertEquals(0, attributes.size());
@@ -2709,7 +3361,64 @@ public class MemoryFileStoreTest {
 
     @Test(expected = NoSuchFileException.class)
     public void testReadAttributesNonExisting() throws IOException {
-        createPath("/foo").readAttributes();
+        createPath("/foo").readAttributes(true);
+    }
+
+    @Test
+    public void testReadAttributesLinkFollowLinks() throws IOException {
+        Directory bar = (Directory) root.add("bar", new Directory());
+        Link foo = (Link) root.add("foo", new Link("bar"));
+
+        foo.setReadOnly(true);
+        foo.setHidden(true);
+
+        MemoryFileAttributes attributes = createPath("/foo").readAttributes(true);
+
+        assertEquals(bar.getLastModifiedTime(), attributes.lastModifiedTime());
+        assertEquals(bar.getLastAccessTime(), attributes.lastAccessTime());
+        assertEquals(bar.getCreationTime(), attributes.creationTime());
+        assertFalse(attributes.isRegularFile());
+        assertTrue(attributes.isDirectory());
+        assertFalse(attributes.isSymbolicLink());
+        assertFalse(attributes.isOther());
+        assertEquals(0, attributes.size());
+        assertNull(attributes.fileKey());
+
+        assertFalse(attributes.isReadOnly());
+        assertFalse(attributes.isHidden());
+    }
+
+    @Test
+    public void testReadAttributesLinkNoFollowLinks() throws IOException {
+        Link foo = (Link) root.add("foo", new Link("bar"));
+
+        foo.setReadOnly(true);
+        foo.setHidden(true);
+
+        MemoryFileAttributes attributes = createPath("/foo").readAttributes(false);
+
+        assertEquals(foo.getLastModifiedTime(), attributes.lastModifiedTime());
+        assertEquals(foo.getLastAccessTime(), attributes.lastAccessTime());
+        assertEquals(foo.getCreationTime(), attributes.creationTime());
+        assertFalse(attributes.isRegularFile());
+        assertFalse(attributes.isDirectory());
+        assertTrue(attributes.isSymbolicLink());
+        assertFalse(attributes.isOther());
+        assertEquals(0, attributes.size());
+        assertNull(attributes.fileKey());
+
+        assertTrue(attributes.isReadOnly());
+        assertTrue(attributes.isHidden());
+    }
+
+    @Test(expected = NoSuchFileException.class)
+    public void testReadAttributesLinkBroken() throws IOException {
+        Link foo = (Link) root.add("foo", new Link("bar"));
+
+        foo.setReadOnly(true);
+        foo.setHidden(true);
+
+        createPath("/foo").readAttributes(true);
     }
 
     // MemoryFileStore.readAttributes (map variant)

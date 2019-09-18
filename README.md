@@ -40,7 +40,7 @@ Most operations are atomic and thread safe. Concurrent access to files using str
 The in-memory file system knows the following limitations:
 
 * All paths use `/` as separator. `/` is not allowed inside file or directory names.
-* There is no support for symbolic links.
+* Symbolic links can only be nested up to 100 times.
 * Files are never executable. Calling [checkAccess](https://docs.oracle.com/javase/8/docs/api/java/nio/file/spi/FileSystemProvider.html#checkAccess-java.nio.file.Path-java.nio.file.AccessMode...-) on a file with [AccessMode.EXECUTE](https://docs.oracle.com/javase/8/docs/api/java/nio/file/AccessMode.html#EXECUTE) will cause an [AccessDeniedException](https://docs.oracle.com/javase/8/docs/api/java/nio/file/AccessDeniedException.html) to be thrown.
 * There is only one file system. Any attempt to create a new one will fail.
 * There is no support for [UserPrincipalLookupService](https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/UserPrincipalLookupService.html).

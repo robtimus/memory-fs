@@ -45,6 +45,7 @@ import java.nio.file.spi.FileSystemProvider;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import com.github.robtimus.filesystems.LinkOptionSupport;
 import com.github.robtimus.filesystems.Messages;
 
 /**
@@ -151,6 +152,11 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
+    public void createSymbolicLink(Path link, Path target, FileAttribute<?>... attrs) throws IOException {
+        toMemoryPath(link).createSymbolicLink(toMemoryPath(target), attrs);
+    }
+
+    @Override
     public void createLink(Path link, Path existing) throws IOException {
         toMemoryPath(link).createLink(toMemoryPath(existing));
     }
@@ -163,6 +169,11 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     @Override
     public boolean deleteIfExists(Path path) throws IOException {
         return toMemoryPath(path).deleteIfExists();
+    }
+
+    @Override
+    public Path readSymbolicLink(Path link) throws IOException {
+        return toMemoryPath(link).readSymbolicLink();
     }
 
     @Override
@@ -206,10 +217,12 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     public <V extends FileAttributeView> V getFileAttributeView(Path path, Class<V> type, LinkOption... options) {
         Objects.requireNonNull(type);
         if (type == BasicFileAttributeView.class) {
-            return type.cast(new AttributeView("basic", toMemoryPath(path))); //$NON-NLS-1$
+            boolean followLinks = LinkOptionSupport.followLinks(options);
+            return type.cast(new AttributeView("basic", toMemoryPath(path), followLinks)); //$NON-NLS-1$
         }
         if (type == MemoryFileAttributeView.class) {
-            return type.cast(new AttributeView("memory", toMemoryPath(path))); //$NON-NLS-1$
+            boolean followLinks = LinkOptionSupport.followLinks(options);
+            return type.cast(new AttributeView("memory", toMemoryPath(path), followLinks)); //$NON-NLS-1$
         }
         return null;
     }
@@ -218,10 +231,12 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
 
         private final String name;
         private final MemoryPath path;
+        private final boolean followLinks;
 
-        private AttributeView(String name, MemoryPath path) {
+        private AttributeView(String name, MemoryPath path, boolean followLinks) {
             this.name = Objects.requireNonNull(name);
             this.path = Objects.requireNonNull(path);
+            this.followLinks = followLinks;
         }
 
         @Override
@@ -231,22 +246,22 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
 
         @Override
         public void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime) throws IOException {
-            path.setTimes(lastModifiedTime, lastAccessTime, createTime);
+            path.setTimes(lastModifiedTime, lastAccessTime, createTime, followLinks);
         }
 
         @Override
         public MemoryFileAttributes readAttributes() throws IOException {
-            return path.readAttributes();
+            return path.readAttributes(followLinks);
         }
 
         @Override
         public void setReadOnly(boolean value) throws IOException {
-            path.setReadOnly(value);
+            path.setReadOnly(value, followLinks);
         }
 
         @Override
         public void setHidden(boolean value) throws IOException {
-            path.setHidden(value);
+            path.setHidden(value, followLinks);
         }
     }
 
@@ -260,7 +275,8 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     @Override
     public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options) throws IOException {
         if (type == BasicFileAttributes.class || type == MemoryFileAttributes.class) {
-            return type.cast(toMemoryPath(path).readAttributes());
+            boolean followLinks = LinkOptionSupport.followLinks(options);
+            return type.cast(toMemoryPath(path).readAttributes(followLinks));
         }
         throw Messages.fileSystemProvider().unsupportedFileAttributesType(type);
     }
@@ -274,7 +290,8 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
      */
     @Override
     public Map<String, Object> readAttributes(Path path, String attributes, LinkOption... options) throws IOException {
-        return toMemoryPath(path).readAttributes(attributes, options);
+        boolean followLinks = LinkOptionSupport.followLinks(options);
+        return toMemoryPath(path).readAttributes(attributes, followLinks);
     }
 
     /**
@@ -286,7 +303,8 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
      */
     @Override
     public void setAttribute(Path path, String attribute, Object value, LinkOption... options) throws IOException {
-        toMemoryPath(path).setAttribute(attribute, value, options);
+        boolean followLinks = LinkOptionSupport.followLinks(options);
+        toMemoryPath(path).setAttribute(attribute, value, followLinks);
     }
 
     /**

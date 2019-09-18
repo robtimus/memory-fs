@@ -28,7 +28,6 @@ import java.nio.file.CopyOption;
 import java.nio.file.DirectoryStream;
 import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.FileStore;
-import java.nio.file.FileSystem;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -41,6 +40,7 @@ import java.nio.file.attribute.FileTime;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import com.github.robtimus.filesystems.LinkOptionSupport;
 import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.SimpleAbstractPath;
 
@@ -69,7 +69,7 @@ final class MemoryPath extends SimpleAbstractPath {
     }
 
     @Override
-    public FileSystem getFileSystem() {
+    public MemoryFileSystem getFileSystem() {
         return fs;
     }
 
@@ -140,7 +140,8 @@ final class MemoryPath extends SimpleAbstractPath {
 
     @Override
     public MemoryPath toRealPath(LinkOption... options) throws IOException {
-        return fs.toRealPath(this, options);
+        boolean followLinks = LinkOptionSupport.followLinks(options);
+        return fs.toRealPath(this, followLinks);
     }
 
     @Override
@@ -186,6 +187,10 @@ final class MemoryPath extends SimpleAbstractPath {
         fs.createDirectory(this, attrs);
     }
 
+    void createSymbolicLink(MemoryPath target, FileAttribute<?>... attrs) throws IOException {
+        fs.createSymbolicLink(this, target, attrs);
+    }
+
     void createLink(MemoryPath existing) throws IOException {
         fs.createLink(this, existing);
     }
@@ -196,6 +201,10 @@ final class MemoryPath extends SimpleAbstractPath {
 
     boolean deleteIfExists() throws IOException {
         return fs.deleteIfExists(this);
+    }
+
+    MemoryPath readSymbolicLink() throws IOException {
+        return fs.readSymbolicLink(this);
     }
 
     void copy(MemoryPath target, CopyOption... options) throws IOException {
@@ -228,27 +237,27 @@ final class MemoryPath extends SimpleAbstractPath {
         fs.checkAccess(this, modes);
     }
 
-    void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime) throws IOException {
-        fs.setTimes(this, lastModifiedTime, lastAccessTime, createTime);
+    void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime, boolean followLinks) throws IOException {
+        fs.setTimes(this, lastModifiedTime, lastAccessTime, createTime, followLinks);
     }
 
-    MemoryFileAttributes readAttributes() throws IOException {
-        return fs.readAttributes(this);
+    MemoryFileAttributes readAttributes(boolean followLinks) throws IOException {
+        return fs.readAttributes(this, followLinks);
     }
 
-    void setReadOnly(boolean value) throws IOException {
-        fs.setReadOnly(this, value);
+    void setReadOnly(boolean value, boolean followLinks) throws IOException {
+        fs.setReadOnly(this, value, followLinks);
     }
 
-    void setHidden(boolean value) throws IOException {
-        fs.setHidden(this, value);
+    void setHidden(boolean value, boolean followLinks) throws IOException {
+        fs.setHidden(this, value, followLinks);
     }
 
-    Map<String, Object> readAttributes(String attributes, LinkOption... options) throws IOException {
-        return fs.readAttributes(this, attributes, options);
+    Map<String, Object> readAttributes(String attributes, boolean followLinks) throws IOException {
+        return fs.readAttributes(this, attributes, followLinks);
     }
 
-    void setAttribute(String attribute, Object value, LinkOption... options) throws IOException {
-        fs.setAttribute(this, attribute, value, options);
+    void setAttribute(String attribute, Object value, boolean followLinks) throws IOException {
+        fs.setAttribute(this, attribute, value, followLinks);
     }
 }
