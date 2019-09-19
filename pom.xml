@@ -21,7 +21,7 @@
 
   <groupId>com.github.robtimus</groupId>
   <artifactId>memory-fs</artifactId>
-  <version>1.3</version>
+  <version>1.4-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>memory-fs</name>
@@ -46,7 +46,7 @@
   <scm>
     <connection>scm:git:git@github.com:robtimus/memory-fs.git</connection>
     <developerConnection>scm:git:git@github.com:robtimus/memory-fs.git</developerConnection>
-    <tag>memory-fs-1.3</tag>
+    <tag>HEAD</tag>
     <url>https://github.com/robtimus/memory-fs</url>
   </scm>
 
