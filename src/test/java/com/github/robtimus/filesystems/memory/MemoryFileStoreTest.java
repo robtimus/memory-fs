@@ -27,6 +27,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -1584,16 +1585,18 @@ public class MemoryFileStoreTest {
 
     @Test(expected = NoSuchFileException.class)
     public void testNewDirectoryStreamNotExisting() throws IOException {
-
-        provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE);
+        try (DirectoryStream<Path> stream = provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+            fail("newDirectoryStream should fail");
+        }
     }
 
     @Test(expected = NotDirectoryException.class)
     public void testNewDirectoryStreamNotDirectory() throws IOException {
-
         root.add("foo", new File());
 
-        provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE);
+        try (DirectoryStream<Path> stream = provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+            fail("newDirectoryStream should fail");
+        }
     }
 
     @Test
@@ -1619,7 +1622,9 @@ public class MemoryFileStoreTest {
     public void testNewDirectoryStreamWithBrokenLink() throws IOException {
         root.add("foo", new Link("bar"));
 
-        provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE);
+        try (DirectoryStream<Path> stream = provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+            fail("newDirectoryStream should fail");
+        }
     }
 
     @Test(expected = FileSystemException.class)
@@ -1627,7 +1632,9 @@ public class MemoryFileStoreTest {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
-        provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE);
+        try (DirectoryStream<Path> stream = provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+            fail("newDirectoryStream should fail");
+        }
     }
 
     private static final class AcceptAllFilter implements Filter<Path> {

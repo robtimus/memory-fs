@@ -215,6 +215,7 @@ final class MemoryPath extends SimpleAbstractPath {
         fs.move(this, target, options);
     }
 
+    @SuppressWarnings("resource")
     boolean isSameFile(Path other) throws IOException {
         if (this.equals(other)) {
             return true;

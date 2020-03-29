@@ -581,6 +581,7 @@ class MemoryFileStore extends FileStore {
         node.parent.remove(path.fileName());
     }
 
+    @SuppressWarnings("resource")
     synchronized MemoryPath readSymbolicLink(MemoryPath link) throws IOException {
         MemoryPath normalizedLink = normalize(link);
 
@@ -1870,10 +1871,10 @@ class MemoryFileStore extends FileStore {
                 }
             }
 
+            @SuppressWarnings("resource")
             private void invalidateAndRemoveAll(FileChannel channel) {
                 synchronized (locks) {
                     for (Iterator<Lock> i = locks.iterator(); i.hasNext(); ) {
-                        @SuppressWarnings("resource")
                         Lock lock = i.next();
                         if (lock.channel() == channel) {
                             lock.invalidate();

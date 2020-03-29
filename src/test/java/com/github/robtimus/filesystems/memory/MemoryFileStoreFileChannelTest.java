@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -768,7 +769,9 @@ public class MemoryFileStoreFileChannelTest {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(false, true, false, null)) {
-            channel.lock(0, Long.MAX_VALUE, true);
+            try (FileLock lock = channel.lock(0, Long.MAX_VALUE, true)) {
+                fail("FileChannel.lock should fail");
+            }
         }
     }
 
@@ -777,7 +780,9 @@ public class MemoryFileStoreFileChannelTest {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(true, false, false, null)) {
-            channel.lock(0, Long.MAX_VALUE, false);
+            try (FileLock lock = channel.lock(0, Long.MAX_VALUE, false)) {
+                fail("FileChannel.lock should fail");
+            }
         }
     }
 
@@ -802,8 +807,8 @@ public class MemoryFileStoreFileChannelTest {
 
         try (FileChannel channel = file.newFileChannel(true, true, false, null)) {
             try (FileLock lock = channel.lock(0, Long.MAX_VALUE, true)) {
-                try {
-                    channel.lock(0, 10, true);
+                try (FileLock lock2 = channel.lock(0, 10, true)) {
+                    fail("Second FileChannel.lock should fail");
                 } finally {
                     assertTrue(lock.isValid());
                     assertFalse(lock.isShared());
@@ -851,8 +856,9 @@ public class MemoryFileStoreFileChannelTest {
             assertTrue(lock.isValid());
             assertFalse(lock.isShared());
 
-            try (FileChannel channel2 = file.newFileChannel(true, false, false, null)) {
-                channel2.lock(0, 10, true);
+            try (FileChannel channel2 = file.newFileChannel(true, false, false, null);
+                    FileLock lock2 = channel2.lock(0, 10, true)) {
+                fail("Second FileChannel.lock should fail");
             } finally {
                 assertTrue(lock.isValid());
                 assertFalse(lock.isShared());
