@@ -19,8 +19,8 @@ package com.github.robtimus.filesystems.memory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import java.nio.file.CopyOption;
 import java.nio.file.LinkOption;
 import java.nio.file.StandardCopyOption;
@@ -104,13 +104,8 @@ public class CopyOptionsTest {
     }
 
     private void testForCopyWithInvalid(CopyOption option) {
-        try {
-            CopyOptions.forCopy(option);
-            fail("Expected UnsupportedOperationException");
-        } catch (UnsupportedOperationException e) {
-            UnsupportedOperationException expected = Messages.fileSystemProvider().unsupportedCopyOption(option);
-            assertEquals(expected.getMessage(), e.getMessage());
-        }
+        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> CopyOptions.forCopy(option));
+        assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
     }
 
     @Test
@@ -155,13 +150,8 @@ public class CopyOptionsTest {
     }
 
     private void testForMoveWithInvalid(CopyOption option) {
-        try {
-            CopyOptions.forMove(option);
-            fail("Expected UnsupportedOperationException");
-        } catch (UnsupportedOperationException e) {
-            UnsupportedOperationException expected = Messages.fileSystemProvider().unsupportedCopyOption(option);
-            assertEquals(expected.getMessage(), e.getMessage());
-        }
+        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> CopyOptions.forMove(option));
+        assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
     }
 
     enum DummyOption implements CopyOption {
