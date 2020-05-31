@@ -17,8 +17,11 @@
 
 package com.github.robtimus.filesystems.memory;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
@@ -29,8 +32,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.Directory;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.File;
 
@@ -42,7 +46,7 @@ public class MemoryFileStoreDirectoryStreamTest {
 
     private MemoryFileSystem fs;
 
-    @Before
+    @BeforeEach
     public void setupFileStore() {
         fileStore = new MemoryFileStore();
         root = fileStore.rootNode;
@@ -122,23 +126,21 @@ public class MemoryFileStoreDirectoryStreamTest {
         assertEquals(expected, names);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testIteratorAfterClose() throws IOException {
         try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
             stream.close();
-            stream.iterator();
+            IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
+            assertEquals(Messages.directoryStream().closed().getMessage(), exception.getMessage());
         }
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testIteratorAfterIterator() throws IOException {
-        boolean iteratorCalled = false;
         try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
             stream.iterator();
-            iteratorCalled = true;
-            stream.iterator();
-        } finally {
-            assertTrue(iteratorCalled);
+            IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
+            assertEquals(Messages.directoryStream().iteratorAlreadyReturned().getMessage(), exception.getMessage());
         }
     }
 
@@ -216,14 +218,17 @@ public class MemoryFileStoreDirectoryStreamTest {
         assertEquals(expected, names);
     }
 
-    @Test(expected = DirectoryIteratorException.class)
+    @Test
     public void testThrowWhileIterating() throws IOException {
         root.add("foo", new File());
 
         try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), ThrowingFilter.INSTANCE)) {
-            for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
-                iterator.next();
-            }
+            DirectoryIteratorException exception = assertThrows(DirectoryIteratorException.class, () -> {
+                for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
+                    iterator.next();
+                }
+            });
+            assertThat(exception.getCause(), instanceOf(IOException.class));
         }
     }
 

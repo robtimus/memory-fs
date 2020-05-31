@@ -317,7 +317,7 @@ class MemoryFileStore extends FileStore {
             throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
         }
         File file = (File) node;
-        OnCloseAction onClose = openOptions.deleteOnClose ? new DeletePathAction(normalizedPath) : null;
+        OnCloseAction onClose = openOptions.deleteOnClose ? () -> delete(normalizedPath) : null;
 
         return file.newInputStream(onClose);
     }
@@ -340,7 +340,7 @@ class MemoryFileStore extends FileStore {
             throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
         }
         File file = (File) node;
-        OnCloseAction onClose = openOptions.deleteOnClose ? new DeletePathAction(normalizedPath) : null;
+        OnCloseAction onClose = openOptions.deleteOnClose ? () -> delete(normalizedPath) : null;
 
         if (file == null) {
             if (!openOptions.create && !openOptions.createNew) {
@@ -378,7 +378,7 @@ class MemoryFileStore extends FileStore {
             throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
         }
         File file = (File) node;
-        OnCloseAction onClose = openOptions.deleteOnClose ? new DeletePathAction(normalizedPath) : null;
+        OnCloseAction onClose = openOptions.deleteOnClose ? () -> delete(normalizedPath) : null;
 
         if (openOptions.read && !openOptions.write) {
             // read-only mode; append is not allowed, and truncateExisting, createNew and create should be ignored
@@ -1928,19 +1928,5 @@ class MemoryFileStore extends FileStore {
     interface OnCloseAction {
 
         void run() throws IOException;
-    }
-
-    private final class DeletePathAction implements OnCloseAction {
-
-        private final MemoryPath path;
-
-        private DeletePathAction(MemoryPath path) {
-            this.path = path;
-        }
-
-        @Override
-        public void run() throws IOException {
-            delete(path);
-        }
     }
 }

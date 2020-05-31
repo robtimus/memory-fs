@@ -17,12 +17,13 @@
 
 package com.github.robtimus.filesystems.memory;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -37,7 +38,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.File;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.OnCloseAction;
 
@@ -134,18 +135,18 @@ public class MemoryFileStoreFileChannelTest {
         }
     }
 
-    @Test(expected = NonReadableChannelException.class)
+    @Test
     public void testReadFromWritableChannel() throws IOException {
 
         File file = new File();
 
         try (SeekableByteChannel channel = file.newFileChannel(false, true, false, null)) {
             ByteBuffer buffer = ByteBuffer.allocate(10);
-            channel.read(buffer);
+            assertThrows(NonReadableChannelException.class, () -> channel.read(buffer));
         }
     }
 
-    @Test(expected = ClosedChannelException.class)
+    @Test
     public void testReadFromClosedChannel() throws IOException {
 
         File file = new File();
@@ -154,7 +155,7 @@ public class MemoryFileStoreFileChannelTest {
         SeekableByteChannel channel = file.newFileChannel(false, true, false, null);
         channel.close();
         ByteBuffer buffer = ByteBuffer.allocate(10);
-        channel.read(buffer);
+        assertThrows(ClosedChannelException.class, () -> channel.read(buffer));
     }
 
     @Test
@@ -219,18 +220,18 @@ public class MemoryFileStoreFileChannelTest {
         }
     }
 
-    @Test(expected = NonReadableChannelException.class)
+    @Test
     public void testReadFromWritableChannelWithGivenPosition() throws IOException {
 
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(false, true, false, null)) {
             ByteBuffer buffer = ByteBuffer.allocate(10);
-            channel.read(buffer, 0);
+            assertThrows(NonReadableChannelException.class, () -> channel.read(buffer, 0));
         }
     }
 
-    @Test(expected = ClosedChannelException.class)
+    @Test
     public void testReadFromClosedChannelWithGivenPosition() throws IOException {
 
         File file = new File();
@@ -239,7 +240,7 @@ public class MemoryFileStoreFileChannelTest {
         FileChannel channel = file.newFileChannel(false, true, false, null);
         channel.close();
         ByteBuffer buffer = ByteBuffer.allocate(10);
-        channel.read(buffer, 0);
+        assertThrows(ClosedChannelException.class, () -> channel.read(buffer, 0));
     }
 
     @Test
@@ -314,18 +315,18 @@ public class MemoryFileStoreFileChannelTest {
         }
     }
 
-    @Test(expected = NonWritableChannelException.class)
+    @Test
     public void testWriteToReadableChannel() throws IOException {
 
         File file = new File();
 
         try (SeekableByteChannel channel = file.newFileChannel(true, false, false, null)) {
             ByteBuffer buffer = ByteBuffer.allocate(10);
-            channel.write(buffer);
+            assertThrows(NonWritableChannelException.class, () -> channel.write(buffer));
         }
     }
 
-    @Test(expected = ClosedChannelException.class)
+    @Test
     public void testWriteToClosedChannel() throws IOException {
 
         File file = new File();
@@ -334,7 +335,7 @@ public class MemoryFileStoreFileChannelTest {
         SeekableByteChannel channel = file.newFileChannel(true, false, false, null);
         channel.close();
         ByteBuffer buffer = ByteBuffer.allocate(10);
-        channel.write(buffer);
+        assertThrows(ClosedChannelException.class, () -> channel.write(buffer));
     }
 
     @Test
@@ -365,18 +366,18 @@ public class MemoryFileStoreFileChannelTest {
         }
     }
 
-    @Test(expected = NonWritableChannelException.class)
+    @Test
     public void testWriteToReadableChannelWithGivenPosition() throws IOException {
 
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(true, false, false, null)) {
             ByteBuffer buffer = ByteBuffer.allocate(10);
-            channel.write(buffer, 0);
+            assertThrows(NonWritableChannelException.class, () -> channel.write(buffer, 0));
         }
     }
 
-    @Test(expected = ClosedChannelException.class)
+    @Test
     public void testWriteToClosedChannelWithGivenPosition() throws IOException {
 
         File file = new File();
@@ -385,7 +386,7 @@ public class MemoryFileStoreFileChannelTest {
         FileChannel channel = file.newFileChannel(true, false, false, null);
         channel.close();
         ByteBuffer buffer = ByteBuffer.allocate(10);
-        channel.write(buffer, 0);
+        assertThrows(ClosedChannelException.class, () -> channel.write(buffer, 0));
     }
 
     @Test
@@ -457,7 +458,7 @@ public class MemoryFileStoreFileChannelTest {
         }
     }
 
-    @Test(expected = NonWritableChannelException.class)
+    @Test
     public void testTruncateReadableChannel() throws IOException {
         final String content = "Hello World";
 
@@ -465,11 +466,11 @@ public class MemoryFileStoreFileChannelTest {
         file.setContent(content.getBytes());
 
         try (SeekableByteChannel channel = file.newFileChannel(true, false, false, null)) {
-            channel.truncate(1);
+            assertThrows(NonWritableChannelException.class, () -> channel.truncate(1));
         }
     }
 
-    @Test(expected = ClosedChannelException.class)
+    @Test
     public void testTruncateClosedChannel() throws IOException {
         final String content = "Hello World";
 
@@ -479,7 +480,7 @@ public class MemoryFileStoreFileChannelTest {
         @SuppressWarnings("resource")
         SeekableByteChannel channel = file.newFileChannel(true, false, false, null);
         channel.close();
-        channel.truncate(1);
+        assertThrows(ClosedChannelException.class, () -> channel.truncate(1));
     }
 
     @Test
@@ -591,7 +592,7 @@ public class MemoryFileStoreFileChannelTest {
         }
     }
 
-    @Test(expected = NonReadableChannelException.class)
+    @Test
     public void testTransferToWritableChannel() throws IOException {
         final String content = "Hello World";
 
@@ -599,11 +600,11 @@ public class MemoryFileStoreFileChannelTest {
         file.setContent(content.getBytes());
 
         try (FileChannel channel = file.newFileChannel(false, true, false, null)) {
-            channel.transferTo(0, Integer.MAX_VALUE, channel);
+            assertThrows(NonReadableChannelException.class, () -> channel.transferTo(0, Integer.MAX_VALUE, channel));
         }
     }
 
-    @Test(expected = ClosedChannelException.class)
+    @Test
     public void testTransferToClosedChannel() throws IOException {
         final String content = "Hello World";
 
@@ -613,7 +614,7 @@ public class MemoryFileStoreFileChannelTest {
         @SuppressWarnings("resource")
         FileChannel channel = file.newFileChannel(true, false, false, null);
         channel.close();
-        channel.transferTo(0, Integer.MAX_VALUE, channel);
+        assertThrows(ClosedChannelException.class, () -> channel.transferTo(0, Integer.MAX_VALUE, channel));
     }
 
     @Test
@@ -717,23 +718,23 @@ public class MemoryFileStoreFileChannelTest {
         }
     }
 
-    @Test(expected = NonWritableChannelException.class)
+    @Test
     public void testTransferFromReadableChannel() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(true, false, false, null)) {
-            channel.transferFrom(channel, 0, Integer.MAX_VALUE);
+            assertThrows(NonWritableChannelException.class, () -> channel.transferFrom(channel, 0, Integer.MAX_VALUE));
         }
     }
 
-    @Test(expected = ClosedChannelException.class)
+    @Test
     public void testTransferFromClosedChannel() throws IOException {
         File file = new File();
 
         @SuppressWarnings("resource")
         FileChannel channel = file.newFileChannel(false, true, false, null);
         channel.close();
-        channel.transferFrom(channel, 0, Integer.MAX_VALUE);
+        assertThrows(ClosedChannelException.class, () -> channel.transferFrom(channel, 0, Integer.MAX_VALUE));
     }
 
     @Test
@@ -764,25 +765,21 @@ public class MemoryFileStoreFileChannelTest {
         }
     }
 
-    @Test(expected = NonReadableChannelException.class)
+    @Test
     public void testLockSharedNonReadable() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(false, true, false, null)) {
-            try (FileLock lock = channel.lock(0, Long.MAX_VALUE, true)) {
-                fail("FileChannel.lock should fail");
-            }
+            assertThrows(NonReadableChannelException.class, () -> channel.lock(0, Long.MAX_VALUE, true));
         }
     }
 
-    @Test(expected = NonWritableChannelException.class)
+    @Test
     public void testLockNonSharedNonWritable() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(true, false, false, null)) {
-            try (FileLock lock = channel.lock(0, Long.MAX_VALUE, false)) {
-                fail("FileChannel.lock should fail");
-            }
+            assertThrows(NonWritableChannelException.class, () -> channel.lock(0, Long.MAX_VALUE, false));
         }
     }
 
@@ -801,18 +798,15 @@ public class MemoryFileStoreFileChannelTest {
         }
     }
 
-    @Test(expected = OverlappingFileLockException.class)
+    @Test
     public void testLockMultipleOverlapping() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(true, true, false, null)) {
             try (FileLock lock = channel.lock(0, Long.MAX_VALUE, true)) {
-                try (FileLock lock2 = channel.lock(0, 10, true)) {
-                    fail("Second FileChannel.lock should fail");
-                } finally {
-                    assertTrue(lock.isValid());
-                    assertFalse(lock.isShared());
-                }
+                assertThrows(OverlappingFileLockException.class, () -> channel.lock(0, 10, true));
+                assertTrue(lock.isValid());
+                assertFalse(lock.isShared());
             }
         }
     }
@@ -846,7 +840,7 @@ public class MemoryFileStoreFileChannelTest {
         }
     }
 
-    @Test(expected = OverlappingFileLockException.class)
+    @Test
     public void testLockMultipleChannelsOverlapping() throws IOException {
         File file = new File();
 
@@ -856,13 +850,11 @@ public class MemoryFileStoreFileChannelTest {
             assertTrue(lock.isValid());
             assertFalse(lock.isShared());
 
-            try (FileChannel channel2 = file.newFileChannel(true, false, false, null);
-                    FileLock lock2 = channel2.lock(0, 10, true)) {
-                fail("Second FileChannel.lock should fail");
-            } finally {
-                assertTrue(lock.isValid());
-                assertFalse(lock.isShared());
+            try (FileChannel channel2 = file.newFileChannel(true, false, false, null)) {
+                assertThrows(OverlappingFileLockException.class, () -> channel2.lock(0, 10, true));
             }
+            assertTrue(lock.isValid());
+            assertFalse(lock.isShared());
         }
     }
 
@@ -874,11 +866,11 @@ public class MemoryFileStoreFileChannelTest {
             @SuppressWarnings("resource")
             FileLock lock = channel.lock(0, Long.MAX_VALUE, false);
             lock.close();
-            lock.close();
+            assertDoesNotThrow(lock::close);
         }
     }
 
-    @Test(expected = ClosedChannelException.class)
+    @Test
     @SuppressWarnings("resource")
     public void testLockReleaseWhenChannelClosed() throws IOException {
         File file = new File();
@@ -887,7 +879,7 @@ public class MemoryFileStoreFileChannelTest {
         try (FileChannel channel = file.newFileChannel(false, true, false, null)) {
             lock = channel.lock(0, Long.MAX_VALUE, false);
         }
-        lock.close();
+        assertThrows(ClosedChannelException.class, lock::close);
     }
 
     @Test

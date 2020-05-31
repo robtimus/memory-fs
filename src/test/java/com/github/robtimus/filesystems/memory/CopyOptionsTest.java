@@ -17,14 +17,14 @@
 
 package com.github.robtimus.filesystems.memory;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import java.nio.file.CopyOption;
 import java.nio.file.LinkOption;
 import java.nio.file.StandardCopyOption;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.Messages;
 
 @SuppressWarnings({ "nls", "javadoc" })

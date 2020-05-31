@@ -19,19 +19,20 @@ package com.github.robtimus.filesystems.memory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.eq;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,28 +56,26 @@ import java.nio.file.attribute.DosFileAttributes;
 import java.nio.file.attribute.FileOwnerAttributeView;
 import java.nio.file.attribute.FileTime;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Random;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Spy;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.File;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.Node;
 
-@RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings({ "nls", "javadoc" })
 public class MemoryFileSystemProviderTest {
 
-    @Spy private MemoryFileStore fileStore;
+    private MemoryFileStore fileStore;
 
     private MemoryFileSystemProvider provider;
     private MemoryFileSystem fs;
 
-    @Before
+    @BeforeEach
     public void setupProvider() {
+        fileStore = spy(MemoryFileStore.class);
+
         provider = new MemoryFileSystemProvider(fileStore);
         fs = new MemoryFileSystem(provider, fileStore);
     }
@@ -138,11 +137,9 @@ public class MemoryFileSystemProviderTest {
 
     // MemoryFileSystemProvider.newFileSystem
 
-    @Test(expected = FileSystemAlreadyExistsException.class)
-    public void testNewFileSystem() throws IOException {
-        try (FileSystem fileSystem = provider.newFileSystem(URI.create("memory:foo"), new HashMap<String, Object>())) {
-            fail("newFileSystem should fail");
-        }
+    @Test
+    public void testNewFileSystem() {
+        assertThrows(FileSystemAlreadyExistsException.class, () -> provider.newFileSystem(URI.create("memory:foo"), Collections.emptyMap()));
     }
 
     // MemoryFileSystemProvider.getFileSystem
@@ -179,14 +176,18 @@ public class MemoryFileSystemProviderTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testGetPathNoScheme() {
-        provider.getPath(URI.create("/foo/bar"));
+        URI uri = URI.create("/foo/bar");
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
+        assertEquals(Messages.uri().notAbsolute(uri).getMessage(), exception.getMessage());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testGetPathInvalidScheme() {
-        provider.getPath(URI.create("https://www.github.com/"));
+        URI uri = URI.create("https://www.github.com/");
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
+        assertEquals(Messages.uri().invalidScheme(uri, "memory").getMessage(), exception.getMessage());
     }
 
     // MemoryFileSystemProvider.getFileAttributeView
@@ -238,6 +239,7 @@ public class MemoryFileSystemProviderTest {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
         doNothing().when(fileStore).setTimes(eq(path), any(FileTime.class), any(FileTime.class), any(FileTime.class), anyBoolean());
+        doNothing().when(fileStore).setTimes(path, null, null, null, true);
 
         BasicFileAttributeView view = provider.getFileAttributeView(path, BasicFileAttributeView.class);
         assertNotNull(view);
@@ -307,12 +309,14 @@ public class MemoryFileSystemProviderTest {
         }
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testReadAttributesOther() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo");
         Files.createFile(path);
         try {
-            provider.readAttributes(path, DosFileAttributes.class);
+            UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
+                    () -> provider.readAttributes(path, DosFileAttributes.class));
+            assertEquals(Messages.fileSystemProvider().unsupportedFileAttributesType(DosFileAttributes.class).getMessage(), exception.getMessage());
         } finally {
             Files.delete(path);
         }
@@ -356,20 +360,23 @@ public class MemoryFileSystemProviderTest {
         }
     }
 
-    @Test(expected = NoSuchFileException.class)
-    public void testGetContentNonExisting() throws IOException {
+    @Test
+    public void testGetContentNonExisting() {
         Path foo = Paths.get(URI.create("memory:/foo"));
 
-        MemoryFileSystemProvider.getContent(foo);
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> MemoryFileSystemProvider.getContent(foo));
+        assertEquals(foo.toString(), exception.getFile());
     }
 
-    @Test(expected = FileSystemException.class)
+    @Test
     public void testGetContentDirectory() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createDirectory(foo);
 
         try {
-            MemoryFileSystemProvider.getContent(foo);
+            FileSystemException exception = assertThrows(FileSystemException.class, () -> MemoryFileSystemProvider.getContent(foo));
+            assertEquals("/foo", exception.getFile());
+            assertEquals(Messages.fileSystemProvider().isDirectory(foo.toString()).getReason(), exception.getReason());
         } finally {
             Files.delete(foo);
         }
@@ -435,7 +442,7 @@ public class MemoryFileSystemProviderTest {
         }
     }
 
-    @Test(expected = AccessDeniedException.class)
+    @Test
     public void testSetContentExistingReadOnly() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createFile(foo);
@@ -447,7 +454,8 @@ public class MemoryFileSystemProviderTest {
             byte[] newContent = new byte[100];
             new Random().nextBytes(newContent);
 
-            MemoryFileSystemProvider.setContent(foo, newContent);
+            AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> MemoryFileSystemProvider.setContent(foo, newContent));
+            assertEquals(foo.toString(), exception.getMessage());
 
         } finally {
             Files.delete(foo);
@@ -473,7 +481,7 @@ public class MemoryFileSystemProviderTest {
         }
     }
 
-    @Test(expected = AccessDeniedException.class)
+    @Test
     public void testSetContentNonExistingReadOnlyParent() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Path bar = foo.resolve("bar");
@@ -485,33 +493,34 @@ public class MemoryFileSystemProviderTest {
             byte[] newContent = new byte[100];
             new Random().nextBytes(newContent);
 
-            MemoryFileSystemProvider.setContent(bar, newContent);
+            AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> MemoryFileSystemProvider.setContent(bar, newContent));
+            assertEquals(foo.toString(), exception.getFile());
+
+            assertFalse(Files.exists(bar));
 
         } finally {
-            assertFalse(Files.exists(bar));
 
             Files.delete(foo);
         }
     }
 
-    @Test(expected = NoSuchFileException.class)
-    public void testSetContentNonExistingNonExistingParent() throws IOException {
+    @Test
+    public void testSetContentNonExistingNonExistingParent() {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Path bar = foo.resolve("bar");
         assertFalse(Files.exists(bar));
-        try {
-            byte[] newContent = new byte[100];
-            new Random().nextBytes(newContent);
 
-            MemoryFileSystemProvider.setContent(bar, newContent);
+        byte[] newContent = new byte[100];
+        new Random().nextBytes(newContent);
 
-        } finally {
-            assertFalse(Files.exists(bar));
-            assertFalse(Files.exists(foo));
-        }
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> MemoryFileSystemProvider.setContent(bar, newContent));
+        assertEquals(foo.toString(), exception.getFile());
+
+        assertFalse(Files.exists(bar));
+        assertFalse(Files.exists(foo));
     }
 
-    @Test(expected = FileSystemException.class)
+    @Test
     public void testSetContentDirectory() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createDirectory(foo);
@@ -519,7 +528,9 @@ public class MemoryFileSystemProviderTest {
             byte[] newContent = new byte[100];
             new Random().nextBytes(newContent);
 
-            MemoryFileSystemProvider.setContent(foo, newContent);
+            FileSystemException exception = assertThrows(FileSystemException.class, () -> MemoryFileSystemProvider.setContent(foo, newContent));
+            assertEquals("/foo", exception.getFile());
+            assertEquals(Messages.fileSystemProvider().isDirectory(foo.toString()).getReason(), exception.getReason());
 
         } finally {
             Files.delete(foo);
