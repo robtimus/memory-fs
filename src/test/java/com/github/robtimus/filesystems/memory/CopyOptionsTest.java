@@ -27,7 +27,7 @@ import java.nio.file.StandardCopyOption;
 import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.Messages;
 
-@SuppressWarnings({ "nls", "javadoc" })
+@SuppressWarnings("javadoc")
 public class CopyOptionsTest {
 
     @Test
