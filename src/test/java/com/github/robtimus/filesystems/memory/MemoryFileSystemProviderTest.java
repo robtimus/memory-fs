@@ -161,7 +161,7 @@ public class MemoryFileSystemProviderTest {
                 "foo",
                 "/foo",
                 "foo/bar",
-                "/foo/bar"
+                "/foo/bar",
         };
 
         for (String input : inputs) {
