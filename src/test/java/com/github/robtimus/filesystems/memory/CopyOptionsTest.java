@@ -27,11 +27,10 @@ import java.nio.file.StandardCopyOption;
 import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.Messages;
 
-@SuppressWarnings("javadoc")
-public class CopyOptionsTest {
+class CopyOptionsTest {
 
     @Test
-    public void testForCopy() {
+    void testForCopy() {
         CopyOptions options = CopyOptions.forCopy();
         assertFalse(options.copyAttributes);
         assertFalse(options.replaceExisting);
@@ -99,7 +98,7 @@ public class CopyOptionsTest {
     }
 
     @Test
-    public void testForCopyWithInvalid() {
+    void testForCopyWithInvalid() {
         testForCopyWithInvalid(DummyOption.DUMMY);
     }
 
@@ -109,7 +108,7 @@ public class CopyOptionsTest {
     }
 
     @Test
-    public void testForMove() {
+    void testForMove() {
         CopyOptions options = CopyOptions.forMove();
         assertFalse(options.copyAttributes);
         assertFalse(options.replaceExisting);
@@ -144,7 +143,7 @@ public class CopyOptionsTest {
     }
 
     @Test
-    public void testForMoveWithInvalid() {
+    void testForMoveWithInvalid() {
         StandardCopyOption option = StandardCopyOption.COPY_ATTRIBUTES;
         testForMoveWithInvalid(option);
     }

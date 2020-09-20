@@ -27,11 +27,11 @@ import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.File;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.OnCloseAction;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public class MemoryFileStoreFileInputStreamTest {
+@SuppressWarnings("nls")
+class MemoryFileStoreFileInputStreamTest {
 
     @Test
-    public void testReadSingle() throws IOException {
+    void testReadSingle() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -54,7 +54,7 @@ public class MemoryFileStoreFileInputStreamTest {
     }
 
     @Test
-    public void testReadBulk() throws IOException {
+    void testReadBulk() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -72,7 +72,7 @@ public class MemoryFileStoreFileInputStreamTest {
     }
 
     @Test
-    public void testSkip() throws IOException {
+    void testSkip() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -99,7 +99,7 @@ public class MemoryFileStoreFileInputStreamTest {
     }
 
     @Test
-    public void testAvailable() throws IOException {
+    void testAvailable() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -123,16 +123,11 @@ public class MemoryFileStoreFileInputStreamTest {
     }
 
     @Test
-    public void testOnClose() throws IOException {
+    void testOnClose() throws IOException {
         File file = new File();
 
         final AtomicInteger runCount = new AtomicInteger(0);
-        final OnCloseAction onClose = new OnCloseAction() {
-            @Override
-            public void run() {
-                runCount.incrementAndGet();
-            }
-        };
+        final OnCloseAction onClose = runCount::incrementAndGet;
         try (InputStream input = file.newInputStream(onClose)) {
             input.close();
             input.close();

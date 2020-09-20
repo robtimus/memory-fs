@@ -38,8 +38,8 @@ import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.Directory;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.File;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public class MemoryFileStoreDirectoryStreamTest {
+@SuppressWarnings("nls")
+class MemoryFileStoreDirectoryStreamTest {
 
     private MemoryFileStore fileStore;
     private Directory root;
@@ -47,7 +47,7 @@ public class MemoryFileStoreDirectoryStreamTest {
     private MemoryFileSystem fs;
 
     @BeforeEach
-    public void setupFileStore() {
+    void setupFileStore() {
         fileStore = new MemoryFileStore();
         root = fileStore.rootNode;
 
@@ -59,7 +59,7 @@ public class MemoryFileStoreDirectoryStreamTest {
     }
 
     @Test
-    public void testIterator() throws IOException {
+    void testIterator() throws IOException {
         final int count = 100;
 
         List<String> expected = new ArrayList<>();
@@ -70,7 +70,7 @@ public class MemoryFileStoreDirectoryStreamTest {
         Collections.sort(expected);
 
         List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), entry -> true)) {
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
                 names.add(iterator.next().getFileName().toString());
             }
@@ -79,7 +79,7 @@ public class MemoryFileStoreDirectoryStreamTest {
     }
 
     @Test
-    public void testFilteredIterator() throws IOException {
+    void testFilteredIterator() throws IOException {
         final int count = 100;
 
         List<String> expected = new ArrayList<>();
@@ -102,7 +102,7 @@ public class MemoryFileStoreDirectoryStreamTest {
     }
 
     @Test
-    public void testCloseWhileIterating() throws IOException {
+    void testCloseWhileIterating() throws IOException {
         final int count = 100;
 
         List<String> expected = new ArrayList<>();
@@ -114,7 +114,7 @@ public class MemoryFileStoreDirectoryStreamTest {
         expected = expected.subList(0, count / 2);
 
         List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), entry -> true)) {
             int index = 0;
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
                 if (++index == count / 2) {
@@ -127,8 +127,8 @@ public class MemoryFileStoreDirectoryStreamTest {
     }
 
     @Test
-    public void testIteratorAfterClose() throws IOException {
-        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
+    void testIteratorAfterClose() throws IOException {
+        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), entry -> true)) {
             stream.close();
             IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
             assertEquals(Messages.directoryStream().closed().getMessage(), exception.getMessage());
@@ -136,8 +136,8 @@ public class MemoryFileStoreDirectoryStreamTest {
     }
 
     @Test
-    public void testIteratorAfterIterator() throws IOException {
-        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
+    void testIteratorAfterIterator() throws IOException {
+        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), entry -> true)) {
             stream.iterator();
             IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
             assertEquals(Messages.directoryStream().iteratorAlreadyReturned().getMessage(), exception.getMessage());
@@ -145,7 +145,7 @@ public class MemoryFileStoreDirectoryStreamTest {
     }
 
     @Test
-    public void testDeleteWhileIterating() throws IOException {
+    void testDeleteWhileIterating() throws IOException {
         final int count = 100;
 
         List<String> expected = new ArrayList<>();
@@ -157,7 +157,7 @@ public class MemoryFileStoreDirectoryStreamTest {
         Collections.sort(expected);
 
         List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/foo"), entry -> true)) {
             int index = 0;
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
                 if (++index < count / 2) {
@@ -170,7 +170,7 @@ public class MemoryFileStoreDirectoryStreamTest {
     }
 
     @Test
-    public void testDeleteChildrenWhileIterating() throws IOException {
+    void testDeleteChildrenWhileIterating() throws IOException {
         final int count = 100;
 
         List<String> expected = new ArrayList<>();
@@ -182,7 +182,7 @@ public class MemoryFileStoreDirectoryStreamTest {
         Collections.sort(expected);
 
         List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/foo"), entry -> true)) {
             int index = 0;
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
                 if (++index < count / 2) {
@@ -198,7 +198,7 @@ public class MemoryFileStoreDirectoryStreamTest {
     }
 
     @Test
-    public void testDeleteBeforeIterator() throws IOException {
+    void testDeleteBeforeIterator() throws IOException {
         final int count = 100;
 
         List<String> expected = new ArrayList<>();
@@ -209,7 +209,7 @@ public class MemoryFileStoreDirectoryStreamTest {
         Collections.sort(expected);
 
         List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/foo"), entry -> true)) {
             root.remove("foo");
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
                 names.add(iterator.next().getFileName().toString());
@@ -219,26 +219,19 @@ public class MemoryFileStoreDirectoryStreamTest {
     }
 
     @Test
-    public void testThrowWhileIterating() throws IOException {
+    void testThrowWhileIterating() throws IOException {
         root.add("foo", new File());
 
-        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), ThrowingFilter.INSTANCE)) {
+        Filter<Path> filter = entry -> {
+            throw new IOException();
+        };
+        try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), filter)) {
             DirectoryIteratorException exception = assertThrows(DirectoryIteratorException.class, () -> {
                 for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
                     iterator.next();
                 }
             });
             assertThat(exception.getCause(), instanceOf(IOException.class));
-        }
-    }
-
-    private static final class AcceptAllFilter implements Filter<Path> {
-
-        private static final AcceptAllFilter INSTANCE = new AcceptAllFilter();
-
-        @Override
-        public boolean accept(Path entry) {
-            return true;
         }
     }
 
@@ -253,16 +246,6 @@ public class MemoryFileStoreDirectoryStreamTest {
         @Override
         public boolean accept(Path entry) {
             return pattern.matcher(entry.getFileName().toString()).matches();
-        }
-    }
-
-    private static final class ThrowingFilter implements Filter<Path> {
-
-        private static final ThrowingFilter INSTANCE = new ThrowingFilter();
-
-        @Override
-        public boolean accept(Path entry) throws IOException {
-            throw new IOException();
         }
     }
 }

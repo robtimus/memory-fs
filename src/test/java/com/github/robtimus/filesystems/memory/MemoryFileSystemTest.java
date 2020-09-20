@@ -22,13 +22,13 @@ import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public class MemoryFileSystemTest {
+@SuppressWarnings("nls")
+class MemoryFileSystemTest {
 
     // MemoryFileSystem.getPath
 
     @Test
-    public void testGetPath() throws IOException {
+    void testGetPath() throws IOException {
         try (MemoryFileSystem fs = createFileSystem()) {
             testGetPath(fs, "/", "/");
             testGetPath(fs, "/foo/bar", "/", "/foo", "/bar");
@@ -45,7 +45,7 @@ public class MemoryFileSystemTest {
     // MemoryFileSystem.toAbsolutePath
 
     @Test
-    public void testToAbsolutePath() throws IOException {
+    void testToAbsolutePath() throws IOException {
         try (MemoryFileSystem fs = createFileSystem()) {
             testToAbsolutePath(fs, "/", "/");
             testToAbsolutePath(fs, "/foo/bar", "/foo/bar");

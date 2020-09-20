@@ -42,11 +42,11 @@ import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.File;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.OnCloseAction;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public class MemoryFileStoreFileChannelTest {
+@SuppressWarnings("nls")
+class MemoryFileStoreFileChannelTest {
 
     @Test
-    public void testReadFromReadableChannelDestinationSmallerThanContent() throws IOException {
+    void testReadFromReadableChannelDestinationSmallerThanContent() throws IOException {
         final String content = "Hello World";
         assertEquals(11, content.length());
         final int destSize = 5;
@@ -80,7 +80,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testReadFromReadableChannelContentSmallerThanBuffer() throws IOException {
+    void testReadFromReadableChannelContentSmallerThanBuffer() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -108,7 +108,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testReadFromReadableChannelContentLargerThanBuffer() throws IOException {
+    void testReadFromReadableChannelContentLargerThanBuffer() throws IOException {
         final String content = repeatUntil("Hello World", 8192 + 10);
 
         File file = new File();
@@ -136,7 +136,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testReadFromWritableChannel() throws IOException {
+    void testReadFromWritableChannel() throws IOException {
 
         File file = new File();
 
@@ -147,7 +147,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testReadFromClosedChannel() throws IOException {
+    void testReadFromClosedChannel() throws IOException {
 
         File file = new File();
 
@@ -159,7 +159,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testReadFromReadableChannelWithGivenPositionDestinationSmallerThanContent() throws IOException {
+    void testReadFromReadableChannelWithGivenPositionDestinationSmallerThanContent() throws IOException {
         final String content = "Hello World";
         assertEquals(11, content.length());
         final int destSize = 5;
@@ -181,7 +181,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testReadFromReadableChannelWithGivenPositionContentSmallerThanBuffer() throws IOException {
+    void testReadFromReadableChannelWithGivenPositionContentSmallerThanBuffer() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -201,7 +201,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testReadFromReadableChannelWithGivenPositionContentLargerThanBuffer() throws IOException {
+    void testReadFromReadableChannelWithGivenPositionContentLargerThanBuffer() throws IOException {
         final String content = repeatUntil("Hello World", 8192 + 10);
 
         File file = new File();
@@ -221,7 +221,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testReadFromWritableChannelWithGivenPosition() throws IOException {
+    void testReadFromWritableChannelWithGivenPosition() throws IOException {
 
         File file = new File();
 
@@ -232,7 +232,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testReadFromClosedChannelWithGivenPosition() throws IOException {
+    void testReadFromClosedChannelWithGivenPosition() throws IOException {
 
         File file = new File();
 
@@ -244,7 +244,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testReadScatteringFromReadableChannel() throws IOException {
+    void testReadScatteringFromReadableChannel() throws IOException {
         final String content = "Hello World";
         assertEquals(11, content.length());
         final int destSize = 5;
@@ -288,7 +288,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testWriteToWritableChannel() throws IOException {
+    void testWriteToWritableChannel() throws IOException {
         final String content = "Hello World";
         final String newStart = "Goodbye";
         final String newContent = "Goodbyeorld";
@@ -316,7 +316,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testWriteToReadableChannel() throws IOException {
+    void testWriteToReadableChannel() throws IOException {
 
         File file = new File();
 
@@ -327,7 +327,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testWriteToClosedChannel() throws IOException {
+    void testWriteToClosedChannel() throws IOException {
 
         File file = new File();
 
@@ -339,7 +339,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testWriteToWritableChannelWithGivenPosition() throws IOException {
+    void testWriteToWritableChannelWithGivenPosition() throws IOException {
         final String content = "Hello World";
         final String newStart = "Goodbye";
         final String newContent = "Goodbyeorld";
@@ -367,7 +367,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testWriteToReadableChannelWithGivenPosition() throws IOException {
+    void testWriteToReadableChannelWithGivenPosition() throws IOException {
 
         File file = new File();
 
@@ -378,7 +378,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testWriteToClosedChannelWithGivenPosition() throws IOException {
+    void testWriteToClosedChannelWithGivenPosition() throws IOException {
 
         File file = new File();
 
@@ -390,7 +390,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testWriteGatheringFromWritableChannel() throws IOException {
+    void testWriteGatheringFromWritableChannel() throws IOException {
         final String content = "Hello World";
         assertEquals(11, content.length());
         final int destSize = 5;
@@ -424,7 +424,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testReadWrite() throws IOException {
+    void testReadWrite() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -444,7 +444,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTruncateWritableChannel() throws IOException {
+    void testTruncateWritableChannel() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -459,7 +459,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTruncateReadableChannel() throws IOException {
+    void testTruncateReadableChannel() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -471,7 +471,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTruncateClosedChannel() throws IOException {
+    void testTruncateClosedChannel() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -484,16 +484,11 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testOnClose() throws IOException {
+    void testOnClose() throws IOException {
         File file = new File();
 
         final AtomicInteger runCount = new AtomicInteger(0);
-        final OnCloseAction onClose = new OnCloseAction() {
-            @Override
-            public void run() {
-                runCount.incrementAndGet();
-            }
-        };
+        final OnCloseAction onClose = runCount::incrementAndGet;
         try (SeekableByteChannel channel = file.newFileChannel(true, false, false, onClose)) {
             assertTrue(channel.isOpen());
             channel.close();
@@ -507,7 +502,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTransferToOther() throws IOException {
+    void testTransferToOther() throws IOException {
         final String content = repeatUntil("Hello World", 8192 + 10);
 
         File file = new File();
@@ -556,7 +551,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTransferToGeneric() throws IOException {
+    void testTransferToGeneric() throws IOException {
         final String content = repeatUntil("Hello World", 8192 + 10);
 
         File file = new File();
@@ -593,7 +588,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTransferToWritableChannel() throws IOException {
+    void testTransferToWritableChannel() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -605,7 +600,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTransferToClosedChannel() throws IOException {
+    void testTransferToClosedChannel() throws IOException {
         final String content = "Hello World";
 
         File file = new File();
@@ -618,7 +613,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTransferFromOther() throws IOException {
+    void testTransferFromOther() throws IOException {
         final String content = repeatUntil("Hello World", 8192 + 10);
 
         File file = new File();
@@ -677,7 +672,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTransferFromGeneric() throws IOException {
+    void testTransferFromGeneric() throws IOException {
         final String content = repeatUntil("Hello World", 8192 + 10);
 
         File file = new File();
@@ -719,7 +714,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTransferFromReadableChannel() throws IOException {
+    void testTransferFromReadableChannel() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(true, false, false, null)) {
@@ -728,7 +723,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTransferFromClosedChannel() throws IOException {
+    void testTransferFromClosedChannel() throws IOException {
         File file = new File();
 
         @SuppressWarnings("resource")
@@ -738,7 +733,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testLockSharedReadable() throws IOException {
+    void testLockSharedReadable() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(true, false, false, null)) {
@@ -752,7 +747,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testLockNonSharedWritable() throws IOException {
+    void testLockNonSharedWritable() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(false, true, false, null)) {
@@ -766,7 +761,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testLockSharedNonReadable() throws IOException {
+    void testLockSharedNonReadable() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(false, true, false, null)) {
@@ -775,7 +770,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testLockNonSharedNonWritable() throws IOException {
+    void testLockNonSharedNonWritable() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(true, false, false, null)) {
@@ -784,7 +779,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testLockMultipleNonOverlapping() throws IOException {
+    void testLockMultipleNonOverlapping() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(true, true, false, null);
@@ -799,7 +794,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testLockMultipleOverlapping() throws IOException {
+    void testLockMultipleOverlapping() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(true, true, false, null)) {
@@ -813,7 +808,7 @@ public class MemoryFileStoreFileChannelTest {
 
     @Test
     @SuppressWarnings("resource")
-    public void testLockMultipleChannelsNonOverlapping() throws IOException {
+    void testLockMultipleChannelsNonOverlapping() throws IOException {
         File file = new File();
 
         try (FileChannel channel1 = file.newFileChannel(true, false, false, null);
@@ -841,7 +836,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testLockMultipleChannelsOverlapping() throws IOException {
+    void testLockMultipleChannelsOverlapping() throws IOException {
         File file = new File();
 
         try (FileChannel channel1 = file.newFileChannel(true, false, false, null);
@@ -859,7 +854,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testLockReleaseTwice() throws IOException {
+    void testLockReleaseTwice() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(false, true, false, null)) {
@@ -872,7 +867,7 @@ public class MemoryFileStoreFileChannelTest {
 
     @Test
     @SuppressWarnings("resource")
-    public void testLockReleaseWhenChannelClosed() throws IOException {
+    void testLockReleaseWhenChannelClosed() throws IOException {
         File file = new File();
 
         FileLock lock;
@@ -883,7 +878,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTryLockSharedReadable() throws IOException {
+    void testTryLockSharedReadable() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(true, false, false, null)) {
@@ -898,7 +893,7 @@ public class MemoryFileStoreFileChannelTest {
     }
 
     @Test
-    public void testTryLockNonSharedWritable() throws IOException {
+    void testTryLockNonSharedWritable() throws IOException {
         File file = new File();
 
         try (FileChannel channel = file.newFileChannel(false, true, false, null)) {

@@ -26,11 +26,11 @@ import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.File;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.OnCloseAction;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public class MemoryFileStoreFileOutputStreamTest {
+@SuppressWarnings("nls")
+class MemoryFileStoreFileOutputStreamTest {
 
     @Test
-    public void testWriteSingle() throws IOException {
+    void testWriteSingle() throws IOException {
         File file = new File();
 
         try (OutputStream output = file.newOutputStream(false, null)) {
@@ -44,7 +44,7 @@ public class MemoryFileStoreFileOutputStreamTest {
     }
 
     @Test
-    public void testWriteBulk() throws IOException {
+    void testWriteBulk() throws IOException {
         File file = new File();
 
         try (OutputStream output = file.newOutputStream(false, null)) {
@@ -54,7 +54,7 @@ public class MemoryFileStoreFileOutputStreamTest {
     }
 
     @Test
-    public void testAppendSingle() throws IOException {
+    void testAppendSingle() throws IOException {
         File file = new File();
         file.setContent("Hello ".getBytes());
 
@@ -69,7 +69,7 @@ public class MemoryFileStoreFileOutputStreamTest {
     }
 
     @Test
-    public void testAppendBulk() throws IOException {
+    void testAppendBulk() throws IOException {
         File file = new File();
         file.setContent("Hello ".getBytes());
 
@@ -80,16 +80,11 @@ public class MemoryFileStoreFileOutputStreamTest {
     }
 
     @Test
-    public void testOnClose() throws IOException {
+    void testOnClose() throws IOException {
         File file = new File();
 
         final AtomicInteger runCount = new AtomicInteger(0);
-        final OnCloseAction onClose = new OnCloseAction() {
-            @Override
-            public void run() {
-                runCount.incrementAndGet();
-            }
-        };
+        final OnCloseAction onClose = runCount::incrementAndGet;
         try (OutputStream output = file.newOutputStream(false, onClose)) {
             output.close();
             output.close();

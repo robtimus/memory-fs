@@ -64,8 +64,8 @@ import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.File;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.Node;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public class MemoryFileSystemProviderTest {
+@SuppressWarnings("nls")
+class MemoryFileSystemProviderTest {
 
     private MemoryFileStore fileStore;
 
@@ -73,7 +73,7 @@ public class MemoryFileSystemProviderTest {
     private MemoryFileSystem fs;
 
     @BeforeEach
-    public void setupProvider() {
+    void setupProvider() {
         fileStore = spy(MemoryFileStore.class);
 
         provider = new MemoryFileSystemProvider(fileStore);
@@ -83,7 +83,7 @@ public class MemoryFileSystemProviderTest {
     // support for Paths and Files
 
     @Test
-    public void testPathsAndFilesSupport() throws IOException {
+    void testPathsAndFilesSupport() throws IOException {
 
         Path path = Paths.get(URI.create("memory:/foo"));
         assertThat(path, instanceOf(MemoryPath.class));
@@ -138,14 +138,14 @@ public class MemoryFileSystemProviderTest {
     // MemoryFileSystemProvider.newFileSystem
 
     @Test
-    public void testNewFileSystem() {
+    void testNewFileSystem() {
         assertThrows(FileSystemAlreadyExistsException.class, () -> provider.newFileSystem(URI.create("memory:foo"), Collections.emptyMap()));
     }
 
     // MemoryFileSystemProvider.getFileSystem
 
     @Test
-    public void testGetFileSystem() {
+    void testGetFileSystem() {
         @SuppressWarnings("resource")
         FileSystem fileSystem = provider.getFileSystem(URI.create("memory:foo"));
         assertThat(fileSystem, instanceOf(MemoryFileSystem.class));
@@ -155,7 +155,7 @@ public class MemoryFileSystemProviderTest {
     // MemoryFileSystemProvider.getPath
 
     @Test
-    public void testGetPath() {
+    void testGetPath() {
         String[] inputs = {
                 "/",
                 "foo",
@@ -177,14 +177,14 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetPathNoScheme() {
+    void testGetPathNoScheme() {
         URI uri = URI.create("/foo/bar");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
         assertEquals(Messages.uri().notAbsolute(uri).getMessage(), exception.getMessage());
     }
 
     @Test
-    public void testGetPathInvalidScheme() {
+    void testGetPathInvalidScheme() {
         URI uri = URI.create("https://www.github.com/");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
         assertEquals(Messages.uri().invalidScheme(uri, "memory").getMessage(), exception.getMessage());
@@ -193,7 +193,7 @@ public class MemoryFileSystemProviderTest {
     // MemoryFileSystemProvider.getFileAttributeView
 
     @Test
-    public void testGetFileAttributeViewBasic() {
+    void testGetFileAttributeViewBasic() {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
         BasicFileAttributeView view = provider.getFileAttributeView(path, BasicFileAttributeView.class);
@@ -202,7 +202,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetFileAttributeViewMemory() {
+    void testGetFileAttributeViewMemory() {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
         MemoryFileAttributeView view = provider.getFileAttributeView(path, MemoryFileAttributeView.class);
@@ -211,7 +211,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetFileAttributeViewOther() {
+    void testGetFileAttributeViewOther() {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
         FileOwnerAttributeView view = provider.getFileAttributeView(path, FileOwnerAttributeView.class);
@@ -219,7 +219,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetFileAttributeViewReadAttributes() throws IOException {
+    void testGetFileAttributeViewReadAttributes() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
         doReturn(null).when(fileStore).readAttributes(path, true);
@@ -235,7 +235,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetFileAttributeViewSetTimes() throws IOException {
+    void testGetFileAttributeViewSetTimes() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
         doNothing().when(fileStore).setTimes(eq(path), any(FileTime.class), any(FileTime.class), any(FileTime.class), anyBoolean());
@@ -252,7 +252,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetFileAttributeViewSetReadOnly() throws IOException {
+    void testGetFileAttributeViewSetReadOnly() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
         doNothing().when(fileStore).setReadOnly(eq(path), anyBoolean(), anyBoolean());
@@ -268,7 +268,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetFileAttributeViewSetHidden() throws IOException {
+    void testGetFileAttributeViewSetHidden() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
         doNothing().when(fileStore).setHidden(eq(path), anyBoolean(), anyBoolean());
@@ -284,7 +284,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testReadAttributesBasic() throws IOException {
+    void testReadAttributesBasic() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo");
         Files.createFile(path);
         try {
@@ -297,7 +297,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testReadAttributesMemory() throws IOException {
+    void testReadAttributesMemory() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo");
         Files.createFile(path);
         try {
@@ -310,7 +310,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testReadAttributesOther() throws IOException {
+    void testReadAttributesOther() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo");
         Files.createFile(path);
         try {
@@ -323,7 +323,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetContentFromString() throws IOException {
+    void testGetContentFromString() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createFile(foo);
         try {
@@ -342,7 +342,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetContentExisting() throws IOException {
+    void testGetContentExisting() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createFile(foo);
         try {
@@ -361,7 +361,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetContentNonExisting() {
+    void testGetContentNonExisting() {
         Path foo = Paths.get(URI.create("memory:/foo"));
 
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> MemoryFileSystemProvider.getContent(foo));
@@ -369,7 +369,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetContentDirectory() throws IOException {
+    void testGetContentDirectory() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createDirectory(foo);
 
@@ -383,7 +383,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testGetContentLink() throws IOException {
+    void testGetContentLink() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Path link = Paths.get(URI.create("memory:/link"));
         Files.createFile(foo);
@@ -406,7 +406,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testSetContentFromString() throws IOException {
+    void testSetContentFromString() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         try {
             Files.write(foo, new byte[] { 1, 2, 3 });
@@ -424,7 +424,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testSetContentExisting() throws IOException {
+    void testSetContentExisting() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createFile(foo);
         try {
@@ -443,7 +443,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testSetContentExistingReadOnly() throws IOException {
+    void testSetContentExistingReadOnly() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createFile(foo);
         try {
@@ -463,7 +463,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testSetContentNonExisting() throws IOException {
+    void testSetContentNonExisting() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         assertFalse(Files.exists(foo));
         try {
@@ -482,7 +482,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testSetContentNonExistingReadOnlyParent() throws IOException {
+    void testSetContentNonExistingReadOnlyParent() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Path bar = foo.resolve("bar");
         assertFalse(Files.exists(bar));
@@ -505,7 +505,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testSetContentNonExistingNonExistingParent() {
+    void testSetContentNonExistingNonExistingParent() {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Path bar = foo.resolve("bar");
         assertFalse(Files.exists(bar));
@@ -521,7 +521,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testSetContentDirectory() throws IOException {
+    void testSetContentDirectory() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createDirectory(foo);
         try {
@@ -538,7 +538,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testSetContentLink() throws IOException {
+    void testSetContentLink() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Path link = Paths.get(URI.create("memory:/link"));
         Files.createFile(foo);
@@ -560,7 +560,7 @@ public class MemoryFileSystemProviderTest {
     }
 
     @Test
-    public void testClear() throws IOException {
+    void testClear() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createDirectory(foo);
 

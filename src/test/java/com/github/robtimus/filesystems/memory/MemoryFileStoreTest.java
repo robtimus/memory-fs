@@ -37,7 +37,6 @@ import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.DirectoryStream;
-import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystemException;
 import java.nio.file.LinkOption;
@@ -65,8 +64,8 @@ import com.github.robtimus.filesystems.memory.MemoryFileStore.File;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.Link;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.Node;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public class MemoryFileStoreTest {
+@SuppressWarnings("nls")
+class MemoryFileStoreTest {
 
     private MemoryFileStore store;
     private Directory root;
@@ -75,7 +74,7 @@ public class MemoryFileStoreTest {
     private MemoryFileSystem fs;
 
     @BeforeEach
-    public void setupFileStore() {
+    void setupFileStore() {
         store = new MemoryFileStore();
         root = store.rootNode;
 
@@ -92,7 +91,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.toRealPath
 
     @Test
-    public void testToRealPath() throws IOException {
+    void testToRealPath() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
         foo.add("baz", new Link("bar"));
@@ -133,13 +132,13 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testToRealPathNotExisting() {
+    void testToRealPathNotExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").toRealPath());
         assertEquals("/foo", exception.getFile());
     }
 
     @Test
-    public void testToRealPathBrokenLink() {
+    void testToRealPathBrokenLink() {
         root.add("foo", new Link("bar"));
 
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").toRealPath());
@@ -147,7 +146,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testToRealPathLinkLoop() {
+    void testToRealPathLinkLoop() {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
@@ -159,7 +158,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.newInputStream
 
     @Test
-    public void testNewInputStream() throws IOException {
+    void testNewInputStream() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -170,7 +169,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewInputStreamDeleteOnClose() throws IOException {
+    void testNewInputStreamDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
 
@@ -182,14 +181,14 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewInputStreamNonExisting() {
+    void testNewInputStreamNonExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newInputStream(createPath("/foo/bar")));
         assertEquals("/foo/bar", exception.getFile());
         assertTrue(root.isEmpty());
     }
 
     @Test
-    public void testNewInputStreamDirectory() {
+    void testNewInputStreamDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newInputStream(createPath("/foo")));
@@ -201,7 +200,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewInputStreamWithLinks() throws IOException {
+    void testNewInputStreamWithLinks() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -216,7 +215,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewInputStreamWithBrokenLink() {
+    void testNewInputStreamWithBrokenLink() {
         root.add("foo", new Link("bar"));
 
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newInputStream(createPath("/foo")));
@@ -224,7 +223,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewInputStreamWithLinkLoop() {
+    void testNewInputStreamWithLinkLoop() {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
@@ -236,7 +235,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.newOutputStream
 
     @Test
-    public void testNewOutputStreamExisting() throws IOException {
+    void testNewOutputStreamExisting() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -250,7 +249,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamExistingDeleteOnClose() throws IOException {
+    void testNewOutputStreamExistingDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -265,7 +264,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamExistingCreate() throws IOException {
+    void testNewOutputStreamExistingCreate() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -279,7 +278,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamExistingCreateDeleteOnClose() throws IOException {
+    void testNewOutputStreamExistingCreateDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -294,7 +293,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamExistingCreateNew() {
+    void testNewOutputStreamExistingCreateNew() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -308,7 +307,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamExistingCreateNewDeleteOnClose() {
+    void testNewOutputStreamExistingCreateNewDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -322,7 +321,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamExistingReadOnly() {
+    void testNewOutputStreamExistingReadOnly() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -337,7 +336,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamExistingReadOnlyDeleteOnClose() {
+    void testNewOutputStreamExistingReadOnlyDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -352,7 +351,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamNonExistingNoCreate() {
+    void testNewOutputStreamNonExistingNoCreate() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         OpenOption[] options = { StandardOpenOption.WRITE };
@@ -364,7 +363,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamNonExistingCreate() throws IOException {
+    void testNewOutputStreamNonExistingCreate() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         OpenOption[] options = { StandardOpenOption.CREATE };
@@ -377,7 +376,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamNonExistingCreateDeleteOnClose() throws IOException {
+    void testNewOutputStreamNonExistingCreateDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE };
@@ -391,7 +390,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamNonExistingCreateNew() throws IOException {
+    void testNewOutputStreamNonExistingCreateNew() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         OpenOption[] options = { StandardOpenOption.CREATE_NEW };
@@ -404,7 +403,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamNonExistingCreateNewDeleteOnClose() throws IOException {
+    void testNewOutputStreamNonExistingCreateNewDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         OpenOption[] options = { StandardOpenOption.CREATE_NEW, StandardOpenOption.DELETE_ON_CLOSE };
@@ -418,7 +417,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamNonExistingCreateAndCreateNew() throws IOException {
+    void testNewOutputStreamNonExistingCreateAndCreateNew() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.CREATE_NEW };
@@ -431,7 +430,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamNonExistingCreateNonExistingParent() {
+    void testNewOutputStreamNonExistingCreateNonExistingParent() {
 
         OpenOption[] options = { StandardOpenOption.CREATE };
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(createPath("/foo/bar"), options));
@@ -441,7 +440,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamNonExistingCreateNewNonExistingParent() {
+    void testNewOutputStreamNonExistingCreateNewNonExistingParent() {
 
         OpenOption[] options = { StandardOpenOption.CREATE_NEW };
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(createPath("/foo/bar"), options));
@@ -451,7 +450,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamNonExistingCreateReadOnlyParent() {
+    void testNewOutputStreamNonExistingCreateReadOnlyParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         foo.setReadOnly(true);
@@ -465,7 +464,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamNonExistingCreateNewReadOnlyParent() {
+    void testNewOutputStreamNonExistingCreateNewReadOnlyParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         foo.setReadOnly(true);
@@ -479,7 +478,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamDirectory() {
+    void testNewOutputStreamDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         OpenOption[] options = { StandardOpenOption.WRITE };
@@ -492,7 +491,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamDirectoryDeleteOnClose() {
+    void testNewOutputStreamDirectoryDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
@@ -505,7 +504,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamWithLinks() throws IOException {
+    void testNewOutputStreamWithLinks() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -520,7 +519,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamBrokenWithLinkToExistingFolder() throws IOException {
+    void testNewOutputStreamBrokenWithLinkToExistingFolder() throws IOException {
         root.add("foo", new Link("bar"));
 
         try (OutputStream input = provider.newOutputStream(createPath("/foo"))) {
@@ -530,7 +529,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamBrokenWithLinkToNonExistingFolder() {
+    void testNewOutputStreamBrokenWithLinkToNonExistingFolder() {
         root.add("foo", new Link("bar/baz"));
 
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(createPath("/foo")));
@@ -538,7 +537,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewOutputStreamWithLinkLoop() {
+    void testNewOutputStreamWithLinkLoop() {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
@@ -550,7 +549,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.newByteChannel
 
     @Test
-    public void testNewByteChannelRead() throws IOException {
+    void testNewByteChannelRead() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -564,7 +563,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadDeleteOnClose() throws IOException {
+    void testNewByteChannelReadDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -579,7 +578,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWithTruncate() throws IOException {
+    void testNewByteChannelReadWithTruncate() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -593,7 +592,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWithTruncateDeleteOnClose() throws IOException {
+    void testNewByteChannelReadWithTruncateDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -609,7 +608,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWithCreate() throws IOException {
+    void testNewByteChannelReadWithCreate() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -623,7 +622,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWithCreateDeleteOnClose() throws IOException {
+    void testNewByteChannelReadWithCreateDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -638,7 +637,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWithCreateNew() throws IOException {
+    void testNewByteChannelReadWithCreateNew() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -652,7 +651,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWithCreateNewDeleteOnClose() throws IOException {
+    void testNewByteChannelReadWithCreateNewDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -667,7 +666,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadNonExisting() {
+    void testNewByteChannelReadNonExisting() {
 
         Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
@@ -677,7 +676,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadNonExistingWithTruncate() {
+    void testNewByteChannelReadNonExistingWithTruncate() {
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.TRUNCATE_EXISTING);
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
@@ -687,7 +686,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadNonExistingWithCreate() {
+    void testNewByteChannelReadNonExistingWithCreate() {
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE);
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
@@ -697,7 +696,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadNonExistingWithCreateNew() {
+    void testNewByteChannelReadNonExistingWithCreateNew() {
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW);
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
@@ -707,7 +706,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadDirectory() {
+    void testNewByteChannelReadDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
@@ -720,7 +719,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWithLinks() throws IOException {
+    void testNewByteChannelReadWithLinks() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -736,7 +735,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWithBrokenLink() {
+    void testNewByteChannelReadWithBrokenLink() {
         root.add("foo", new Link("bar"));
 
         Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
@@ -745,7 +744,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWithLinkLoop() {
+    void testNewByteChannelReadWithLinkLoop() {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
@@ -756,7 +755,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteExisting() throws IOException {
+    void testNewByteChannelWriteExisting() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -770,7 +769,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteExistingDeleteOnClose() throws IOException {
+    void testNewByteChannelWriteExistingDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -785,7 +784,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteExistingCreate() throws IOException {
+    void testNewByteChannelWriteExistingCreate() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -799,7 +798,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteExistingCreateDeleteOnClose() throws IOException {
+    void testNewByteChannelWriteExistingCreateDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -814,7 +813,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteExistingCreateNew() {
+    void testNewByteChannelWriteExistingCreateNew() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -828,7 +827,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteExistingCreateNewDeleteOnClose() {
+    void testNewByteChannelWriteExistingCreateNewDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -842,7 +841,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteExistingReadOnly() {
+    void testNewByteChannelWriteExistingReadOnly() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -857,7 +856,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteExistingReadOnlyDeleteOnClose() {
+    void testNewByteChannelWriteExistingReadOnlyDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -872,7 +871,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingNoCreate() {
+    void testNewByteChannelWriteNonExistingNoCreate() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
@@ -884,7 +883,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreate() throws IOException {
+    void testNewByteChannelWriteNonExistingCreate() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
@@ -897,7 +896,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateDeleteOnClose() throws IOException {
+    void testNewByteChannelWriteNonExistingCreateDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE);
@@ -911,7 +910,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateNew() throws IOException {
+    void testNewByteChannelWriteNonExistingCreateNew() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
@@ -924,7 +923,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateNewDeleteOnClose() throws IOException {
+    void testNewByteChannelWriteNonExistingCreateNewDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW, StandardOpenOption.DELETE_ON_CLOSE);
@@ -938,7 +937,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateWithAttributes() throws IOException {
+    void testNewByteChannelWriteNonExistingCreateWithAttributes() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -966,7 +965,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateNewWithAttributes() throws IOException {
+    void testNewByteChannelWriteNonExistingCreateNewWithAttributes() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -994,7 +993,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateWithInvalidAttributes() {
+    void testNewByteChannelWriteNonExistingCreateWithInvalidAttributes() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1016,7 +1015,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateNewWithInvalidAttributes() {
+    void testNewByteChannelWriteNonExistingCreateNewWithInvalidAttributes() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1038,7 +1037,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateNonExistingParent() {
+    void testNewByteChannelWriteNonExistingCreateNonExistingParent() {
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
@@ -1048,7 +1047,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateNewNonExistingParent() {
+    void testNewByteChannelWriteNonExistingCreateNewNonExistingParent() {
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
@@ -1058,7 +1057,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateReadOnlyParent() {
+    void testNewByteChannelWriteNonExistingCreateReadOnlyParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         foo.setReadOnly(true);
@@ -1072,7 +1071,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateNewReadOnlyParent() {
+    void testNewByteChannelWriteNonExistingCreateNewReadOnlyParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         foo.setReadOnly(true);
@@ -1086,7 +1085,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateReadAttribute() {
+    void testNewByteChannelWriteNonExistingCreateReadAttribute() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
@@ -1100,7 +1099,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteNonExistingCreateNewReadOnlyAttribute() {
+    void testNewByteChannelWriteNonExistingCreateNewReadOnlyAttribute() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
@@ -1114,7 +1113,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteDirectory() {
+    void testNewByteChannelWriteDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
@@ -1127,7 +1126,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteDirectoryDeleteOnClose() {
+    void testNewByteChannelWriteDirectoryDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
@@ -1140,7 +1139,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteWithLinks() throws IOException {
+    void testNewByteChannelWriteWithLinks() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -1156,7 +1155,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteBrokenWithLinkToExistingFolder() throws IOException {
+    void testNewByteChannelWriteBrokenWithLinkToExistingFolder() throws IOException {
         root.add("foo", new Link("bar"));
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
@@ -1167,7 +1166,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteBrokenWithLinkToNonExistingFolder() {
+    void testNewByteChannelWriteBrokenWithLinkToNonExistingFolder() {
         root.add("foo", new Link("bar/baz"));
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
@@ -1176,7 +1175,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelWriteWithLinkLoop() {
+    void testNewByteChannelWriteWithLinkLoop() {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
@@ -1187,7 +1186,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteExisting() throws IOException {
+    void testNewByteChannelReadWriteExisting() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -1201,7 +1200,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteExistingDeleteOnClose() throws IOException {
+    void testNewByteChannelReadWriteExistingDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -1216,7 +1215,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteExistingCreate() throws IOException {
+    void testNewByteChannelReadWriteExistingCreate() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -1230,7 +1229,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteExistingCreateDeleteOnClose() throws IOException {
+    void testNewByteChannelReadWriteExistingCreateDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -1246,7 +1245,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteExistingCreateNew() {
+    void testNewByteChannelReadWriteExistingCreateNew() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -1260,7 +1259,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteExistingCreateNewDeleteOnClose() {
+    void testNewByteChannelReadWriteExistingCreateNewDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -1275,7 +1274,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteExistingReadOnly() {
+    void testNewByteChannelReadWriteExistingReadOnly() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -1290,7 +1289,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteExistingReadOnlyDeleteOnClose() {
+    void testNewByteChannelReadWriteExistingReadOnlyDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -1305,7 +1304,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingNoCreate() {
+    void testNewByteChannelReadWriteNonExistingNoCreate() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE);
@@ -1317,7 +1316,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreate() throws IOException {
+    void testNewByteChannelReadWriteNonExistingCreate() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
@@ -1330,7 +1329,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreateDeleteOnClose() throws IOException {
+    void testNewByteChannelReadWriteNonExistingCreateDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE,
@@ -1345,7 +1344,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreateNew() throws IOException {
+    void testNewByteChannelReadWriteNonExistingCreateNew() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
@@ -1358,7 +1357,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreateNewDeleteOnClose() throws IOException {
+    void testNewByteChannelReadWriteNonExistingCreateNewDeleteOnClose() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW,
@@ -1373,7 +1372,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreateWithAttributes() throws IOException {
+    void testNewByteChannelReadWriteNonExistingCreateWithAttributes() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1401,7 +1400,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreateNewWithAttributes() throws IOException {
+    void testNewByteChannelReadWriteNonExistingCreateNewWithAttributes() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1429,7 +1428,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreateWithInvalidAttributes() {
+    void testNewByteChannelReadWriteNonExistingCreateWithInvalidAttributes() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1451,7 +1450,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreateNewWithInvalidAttributes() {
+    void testNewByteChannelReadWriteNonExistingCreateNewWithInvalidAttributes() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1473,7 +1472,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreateNonExistingParent() {
+    void testNewByteChannelReadWriteNonExistingCreateNonExistingParent() {
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
@@ -1483,7 +1482,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreateNewNonExistingParent() {
+    void testNewByteChannelReadWriteNonExistingCreateNewNonExistingParent() {
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
@@ -1493,7 +1492,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreateReadOnlyParent() {
+    void testNewByteChannelReadWriteNonExistingCreateReadOnlyParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         foo.setReadOnly(true);
@@ -1507,7 +1506,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteNonExistingCreateNewReadOnlyParent() {
+    void testNewByteChannelReadWriteNonExistingCreateNewReadOnlyParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         foo.setReadOnly(true);
@@ -1521,7 +1520,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteDirectory() {
+    void testNewByteChannelReadWriteDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE);
@@ -1534,7 +1533,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewByteChannelReadWriteDirectoryDeleteOnClose() {
+    void testNewByteChannelReadWriteDirectoryDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
@@ -1549,32 +1548,32 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.newDirectoryStream
 
     @Test
-    public void testNewDirectoryStream() throws IOException {
+    void testNewDirectoryStream() throws IOException {
 
-        try (DirectoryStream<Path> stream = provider.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = provider.newDirectoryStream(createPath("/"), entry -> true)) {
             assertNotNull(stream);
             // don't do anything with the stream, there's a separate test for that
         }
     }
 
     @Test
-    public void testNewDirectoryStreamNotExisting() {
+    void testNewDirectoryStreamNotExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE));
+                () -> provider.newDirectoryStream(createPath("/foo"), entry -> true));
         assertEquals("/foo", exception.getFile());
     }
 
     @Test
-    public void testNewDirectoryStreamNotDirectory() {
+    void testNewDirectoryStreamNotDirectory() {
         root.add("foo", new File());
 
         NotDirectoryException exception = assertThrows(NotDirectoryException.class,
-                () -> provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE));
+                () -> provider.newDirectoryStream(createPath("/foo"), entry -> true));
         assertEquals("/foo", exception.getFile());
     }
 
     @Test
-    public void testNewDirectoryStreamWithLinks() throws IOException {
+    void testNewDirectoryStreamWithLinks() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory bar = (Directory) foo.add("bar", new Directory());
         bar.add("file", new File());
@@ -1583,7 +1582,7 @@ public class MemoryFileStoreTest {
         root.add("baz", new Link("foo"));
         root.add("link", new Link("baz"));
 
-        try (DirectoryStream<Path> stream = provider.newDirectoryStream(createPath("/link/baz"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = provider.newDirectoryStream(createPath("/link/baz"), entry -> true)) {
             assertNotNull(stream);
             Iterator<Path> iterator = stream.iterator();
             assertTrue(iterator.hasNext());
@@ -1593,39 +1592,29 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testNewDirectoryStreamWithBrokenLink() {
+    void testNewDirectoryStreamWithBrokenLink() {
         root.add("foo", new Link("bar"));
 
         NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE));
+                () -> provider.newDirectoryStream(createPath("/foo"), entry -> true));
         assertEquals("/bar", exception.getFile());
     }
 
     @Test
-    public void testNewDirectoryStreamWithLinkLoop() {
+    void testNewDirectoryStreamWithLinkLoop() {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
         FileSystemException exception = assertThrows(FileSystemException.class,
-                () -> provider.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE));
+                () -> provider.newDirectoryStream(createPath("/foo"), entry -> true));
         assertEquals("/foo", exception.getFile());
         assertEquals(MemoryMessages.maximumLinkDepthExceeded(), exception.getReason());
-    }
-
-    private static final class AcceptAllFilter implements Filter<Path> {
-
-        private static final AcceptAllFilter INSTANCE = new AcceptAllFilter();
-
-        @Override
-        public boolean accept(Path entry) {
-            return true;
-        }
     }
 
     // MemoryFileStore.createDirectory
 
     @Test
-    public void testCreateDirectory() throws IOException {
+    void testCreateDirectory() throws IOException {
 
         provider.createDirectory(createPath("/foo"));
         assertThat(root.get("foo"), instanceOf(Directory.class));
@@ -1650,13 +1639,13 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateRoot() {
+    void testCreateRoot() {
         FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createDirectory(createPath("/")));
         assertEquals("/", exception.getFile());
     }
 
     @Test
-    public void testCreateDirectoryWithAttributes() throws IOException {
+    void testCreateDirectoryWithAttributes() throws IOException {
 
         provider.createDirectory(createPath("/foo"),
                 new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
@@ -1676,7 +1665,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateDirectoryWithInvalidAttributes() {
+    void testCreateDirectoryWithInvalidAttributes() {
 
         FileAttribute<?>[] attributes = {
                 new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
@@ -1695,7 +1684,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateDirectoryReadOnlyParent() {
+    void testCreateDirectoryReadOnlyParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         // content:
@@ -1711,7 +1700,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateDirectoryNonExistingParent() {
+    void testCreateDirectoryNonExistingParent() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.createDirectory(createPath("/foo/bar")));
         assertEquals("/foo", exception.getFile());
 
@@ -1719,7 +1708,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateDirectoryExisting() {
+    void testCreateDirectoryExisting() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -1737,7 +1726,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.createSymbolicLink
 
     @Test
-    public void testCreateSymbolicLink() throws IOException {
+    void testCreateSymbolicLink() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         provider.createSymbolicLink(createPath("/link"), createPath("/foo/bar"));
@@ -1751,7 +1740,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateSymbolicLinkCurrentDirectory() throws IOException {
+    void testCreateSymbolicLinkCurrentDirectory() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         provider.createSymbolicLink(createPath("/foo/link"), createPath("."));
@@ -1765,7 +1754,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateSymbolicLinkEmpty() throws IOException {
+    void testCreateSymbolicLinkEmpty() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         provider.createSymbolicLink(createPath("/foo/link"), createPath(""));
@@ -1779,7 +1768,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateSymbolicLinkExisting() {
+    void testCreateSymbolicLinkExisting() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -1792,7 +1781,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateSymbolicLinkWithAttributes() throws IOException {
+    void testCreateSymbolicLinkWithAttributes() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1819,7 +1808,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateSymbolicLinkWithInvalidAttributes() {
+    void testCreateSymbolicLinkWithInvalidAttributes() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1841,7 +1830,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateSymbolicLinkNonExistingParent() {
+    void testCreateSymbolicLinkNonExistingParent() {
 
         NoSuchFileException exception = assertThrows(NoSuchFileException.class,
                 () -> provider.createSymbolicLink(createPath("/foo/link"), createPath("/bar")));
@@ -1851,7 +1840,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateSymbolicLinkReadOnlyParent() {
+    void testCreateSymbolicLinkReadOnlyParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         foo.setReadOnly(true);
@@ -1867,7 +1856,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.createLink
 
     @Test
-    public void testCreateLinkToFile() throws IOException {
+    void testCreateLinkToFile() throws IOException {
         File foo = (File) root.add("foo", new File());
 
         provider.createLink(createPath("/bar"), createPath("foo"));
@@ -1877,7 +1866,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateLinkToDirectory() {
+    void testCreateLinkToDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.createLink(createPath("/bar"), createPath("foo")));
@@ -1889,7 +1878,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateLinkToEmpty() {
+    void testCreateLinkToEmpty() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.createLink(createPath("/bar"), createPath("")));
@@ -1901,7 +1890,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateLinkReadOnlyParent() {
+    void testCreateLinkReadOnlyParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
         Node bar = foo.add("bar", new File());
         root.add("baz", new File());
@@ -1922,7 +1911,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateLinkNonExistingParent() {
+    void testCreateLinkNonExistingParent() {
         root.add("baz", new File());
 
         NoSuchFileException exception = assertThrows(NoSuchFileException.class,
@@ -1933,7 +1922,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateLinkExisting() {
+    void testCreateLinkExisting() {
         File foo = (File) root.add("foo", new File());
         Node bar = root.add("bar", new Directory());
 
@@ -1946,7 +1935,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCreateLinkMissingExisting() {
+    void testCreateLinkMissingExisting() {
 
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.createLink(createPath("/foo"), createPath("/bar")));
         assertEquals("/bar", exception.getFile());
@@ -1957,19 +1946,19 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.delete
 
     @Test
-    public void testDeleteNonExisting() {
+    void testDeleteNonExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.delete(createPath("/foo")));
         assertEquals("/foo", exception.getFile());
     }
 
     @Test
-    public void testDeleteRoot() {
+    void testDeleteRoot() {
         AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.delete(createPath("/")));
         assertEquals("/", exception.getFile());
     }
 
     @Test
-    public void testDeleteFile() throws IOException {
+    void testDeleteFile() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
 
@@ -1984,7 +1973,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testDeleteEmptyDir() throws IOException {
+    void testDeleteEmptyDir() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new Directory());
 
@@ -1999,7 +1988,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testDeleteNonEmptyDir() {
+    void testDeleteNonEmptyDir() {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory bar = (Directory) foo.add("bar", new Directory());
         Directory baz = (Directory) bar.add("baz", new Directory());
@@ -2018,7 +2007,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testDeleteLink() throws IOException {
+    void testDeleteLink() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
         bar.setContent("hello".getBytes());
@@ -2039,7 +2028,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testDeleteReadOnlyParent() {
+    void testDeleteReadOnlyParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory bar = (Directory) foo.add("bar", new Directory());
 
@@ -2059,18 +2048,18 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.deleteIfExists
 
     @Test
-    public void testDeleteIfExistsNonExisting() throws IOException {
+    void testDeleteIfExistsNonExisting() throws IOException {
         assertFalse(provider.deleteIfExists(createPath("/foo")));
     }
 
     @Test
-    public void testDeleteIfExistsRoot() {
+    void testDeleteIfExistsRoot() {
         AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.deleteIfExists(createPath("/")));
         assertEquals("/", exception.getFile());
     }
 
     @Test
-    public void testDeleteIfExistsFile() throws IOException {
+    void testDeleteIfExistsFile() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
 
@@ -2085,7 +2074,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testDeleteIfExistsEmptyDir() throws IOException {
+    void testDeleteIfExistsEmptyDir() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new Directory());
 
@@ -2100,7 +2089,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testDeleteIfExistsNonEmptyDir() {
+    void testDeleteIfExistsNonEmptyDir() {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory bar = (Directory) foo.add("bar", new Directory());
         Directory baz = (Directory) bar.add("baz", new Directory());
@@ -2119,7 +2108,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testDeleteIfExistsLink() throws IOException {
+    void testDeleteIfExistsLink() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
         bar.setContent("hello".getBytes());
@@ -2140,7 +2129,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testDeleteIfExistsReadOnlyParent() {
+    void testDeleteIfExistsReadOnlyParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory bar = (Directory) foo.add("bar", new Directory());
 
@@ -2160,7 +2149,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.readSymbolicLink
 
     @Test
-    public void testReadSymbolicLink() throws IOException {
+    void testReadSymbolicLink() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
         foo.add("link", new Link("bar"));
@@ -2169,7 +2158,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadSymbolicLinkFile() {
+    void testReadSymbolicLinkFile() {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
         foo.add("link", new Link("bar"));
@@ -2179,7 +2168,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadSymbolicLinkDirectory() {
+    void testReadSymbolicLinkDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
         foo.add("link", new Link("bar"));
@@ -2191,7 +2180,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.copy
 
     @Test
-    public void testCopySame() throws IOException {
+    void testCopySame() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory bar = (Directory) foo.add("bar", new Directory());
         root.add("baz", bar);
@@ -2214,7 +2203,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyNonExisting() {
+    void testCopyNonExisting() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         // content:
@@ -2230,7 +2219,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyNonExistingTargetParent() {
+    void testCopyNonExistingTargetParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -2249,7 +2238,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyRoot() throws IOException {
+    void testCopyRoot() throws IOException {
         // copying a directory (including the root) will not copy its contents, so copying the root is allowed
         Directory foo = (Directory) root.add("foo", new Directory());
 
@@ -2272,7 +2261,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyReplaceFile() {
+    void testCopyReplaceFile() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
         File baz = (File) root.add("baz", new File());
@@ -2293,7 +2282,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyReplaceFileAllowed() throws IOException {
+    void testCopyReplaceFileAllowed() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
         File baz = (File) root.add("baz", new File());
@@ -2313,7 +2302,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyReplaceNonEmptyDir() {
+    void testCopyReplaceNonEmptyDir() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
         File baz = (File) root.add("baz", new File());
@@ -2334,7 +2323,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyReplaceNonEmptyDirAllowed() {
+    void testCopyReplaceNonEmptyDirAllowed() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
         File baz = (File) root.add("baz", new File());
@@ -2355,7 +2344,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyReplaceEmptyDir() {
+    void testCopyReplaceEmptyDir() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
 
@@ -2373,7 +2362,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyReplaceEmptyDirAllowed() throws IOException {
+    void testCopyReplaceEmptyDirAllowed() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
 
@@ -2390,7 +2379,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyFile() throws IOException {
+    void testCopyFile() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
 
@@ -2411,7 +2400,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyFileWithAttributes() throws IOException {
+    void testCopyFileWithAttributes() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
 
@@ -2437,7 +2426,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyEmptyDir() throws IOException {
+    void testCopyEmptyDir() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory baz = (Directory) root.add("baz", new Directory());
 
@@ -2461,7 +2450,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyEmptyDirWithAttributes() throws IOException {
+    void testCopyEmptyDirWithAttributes() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory baz = (Directory) root.add("baz", new Directory());
 
@@ -2488,7 +2477,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyNonEmptyDir() throws IOException {
+    void testCopyNonEmptyDir() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory baz = (Directory) root.add("baz", new Directory());
         baz.add("qux", new File());
@@ -2514,7 +2503,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyNonEmptyDirWithAttributes() throws IOException {
+    void testCopyNonEmptyDirWithAttributes() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory baz = (Directory) root.add("baz", new Directory());
         baz.add("qux", new File());
@@ -2543,7 +2532,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyReadOnlyTargetParent() {
+    void testCopyReadOnlyTargetParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
 
@@ -2564,7 +2553,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyLinkFollowLinks() throws IOException {
+    void testCopyLinkFollowLinks() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
         Link link = (Link) root.add("link", new Link("baz"));
@@ -2588,7 +2577,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyLinkNoFollowLinks() throws IOException {
+    void testCopyLinkNoFollowLinks() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
         Link link1 = (Link) root.add("link1", new Link("baz"));
@@ -2619,7 +2608,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyLinkNoFollowLinksWithAttributes() throws IOException {
+    void testCopyLinkNoFollowLinksWithAttributes() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
         Link link = (Link) root.add("link", new Link("baz"));
@@ -2648,7 +2637,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyLinkBrokenNoFollowLinks() throws IOException {
+    void testCopyLinkBrokenNoFollowLinks() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
         Link link1 = (Link) root.add("link1", new Link("baz"));
@@ -2679,7 +2668,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCopyLinkLoopNoFollowLinks() {
+    void testCopyLinkLoopNoFollowLinks() {
         root.add("foo", new Directory());
         root.add("baz", new File());
         root.add("link1", new Link("link2"));
@@ -2701,7 +2690,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.move
 
     @Test
-    public void testMoveSame() throws IOException {
+    void testMoveSame() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory bar = (Directory) foo.add("bar", new Directory());
 
@@ -2720,7 +2709,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveNonExisting() {
+    void testMoveNonExisting() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         // content:
@@ -2736,7 +2725,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveNonExistingTargetParent() {
+    void testMoveNonExistingTargetParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -2755,7 +2744,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveEmptyRoot() {
+    void testMoveEmptyRoot() {
 
         CopyOption[] options = {};
         DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class,
@@ -2766,7 +2755,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveNonEmptyRoot() {
+    void testMoveNonEmptyRoot() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         // cotent:
@@ -2782,7 +2771,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveReplaceFile() {
+    void testMoveReplaceFile() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
         File baz = (File) root.add("baz", new File());
@@ -2803,7 +2792,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveReplaceFileAllowed() throws IOException {
+    void testMoveReplaceFileAllowed() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
         File baz = (File) root.add("baz", new File());
@@ -2822,7 +2811,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveReplaceNonEmptyDir() {
+    void testMoveReplaceNonEmptyDir() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
         File baz = (File) root.add("baz", new File());
@@ -2843,7 +2832,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveReplaceNonEmptyDirAllowed() {
+    void testMoveReplaceNonEmptyDirAllowed() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
         File baz = (File) root.add("baz", new File());
@@ -2864,7 +2853,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveReplaceEmptyDir() {
+    void testMoveReplaceEmptyDir() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
 
@@ -2882,7 +2871,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveReplaceEmptyDirAllowed() throws IOException {
+    void testMoveReplaceEmptyDirAllowed() throws IOException {
         root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
 
@@ -2898,7 +2887,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveFile() throws IOException {
+    void testMoveFile() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
 
@@ -2915,7 +2904,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveEmptyDir() throws IOException {
+    void testMoveEmptyDir() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory baz = (Directory) root.add("baz", new Directory());
 
@@ -2932,7 +2921,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveNonEmptyDir() throws IOException {
+    void testMoveNonEmptyDir() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory baz = (Directory) root.add("baz", new Directory());
         File qux = (File) baz.add("qux", new File());
@@ -2951,7 +2940,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveNonEmptyDirSameParent() throws IOException {
+    void testMoveNonEmptyDirSameParent() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -2970,7 +2959,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveReadOnlySourceParent() {
+    void testMoveReadOnlySourceParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
@@ -2991,7 +2980,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveReadOnlyTargetParent() {
+    void testMoveReadOnlyTargetParent() {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
 
@@ -3012,7 +3001,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testMoveLink() throws IOException {
+    void testMoveLink() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         File baz = (File) root.add("baz", new File());
         Link link = (Link) root.add("link", new Link("baz"));
@@ -3034,7 +3023,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.isSameFile
 
     @Test
-    public void testIsSameFileEquals() throws IOException {
+    void testIsSameFileEquals() throws IOException {
         assertTrue(provider.isSameFile(createPath("/"), createPath("/")));
         assertTrue(provider.isSameFile(createPath("/foo"), createPath("/foo")));
         assertTrue(provider.isSameFile(createPath("/foo/bar"), createPath("/foo/bar")));
@@ -3048,7 +3037,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testIsSameFileExisting() throws IOException {
+    void testIsSameFileExisting() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
         foo.add("link", new Link("bar"));
@@ -3074,13 +3063,13 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testIsSameFileFirstNonExisting() {
+    void testIsSameFileFirstNonExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(createPath("/foo"), createPath("/")));
         assertEquals("/foo", exception.getFile());
     }
 
     @Test
-    public void testIsSameFileSecondNonExisting() {
+    void testIsSameFileSecondNonExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(createPath("/"), createPath("/foo")));
         assertEquals("/foo", exception.getFile());
     }
@@ -3088,7 +3077,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.isHidden
 
     @Test
-    public void testIsHidden() throws IOException {
+    void testIsHidden() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         foo.setHidden(true);
@@ -3099,7 +3088,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testIsHiddenNonExisting() {
+    void testIsHiddenNonExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isHidden(createPath("/foo")));
         assertEquals("/foo", exception.getFile());
     }
@@ -3107,12 +3096,12 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.getFileStore
 
     @Test
-    public void testGetFileStoreExisting() throws IOException {
+    void testGetFileStoreExisting() throws IOException {
         assertSame(store, provider.getFileStore(createPath("/")));
     }
 
     @Test
-    public void testGetFileStoreNonExisting() {
+    void testGetFileStoreNonExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.getFileStore(createPath("/foo/bar")));
         assertEquals("/foo/bar", exception.getFile());
     }
@@ -3120,13 +3109,13 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.checkAccess
 
     @Test
-    public void testCheckAccessNonExisting() {
+    void testCheckAccessNonExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.checkAccess(createPath("/foo/bar")));
         assertEquals("/foo/bar", exception.getFile());
     }
 
     @Test
-    public void testCheckAccessNoModes() throws IOException {
+    void testCheckAccessNoModes() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new Directory());
 
@@ -3134,7 +3123,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCheckAccessOnlyRead() throws IOException {
+    void testCheckAccessOnlyRead() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new Directory());
 
@@ -3142,7 +3131,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCheckAccessOnlyWriteNotReadOnly() throws IOException {
+    void testCheckAccessOnlyWriteNotReadOnly() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new Directory());
 
@@ -3150,7 +3139,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCheckAccessOnlyWriteReadOnly() {
+    void testCheckAccessOnlyWriteReadOnly() {
         Directory foo = (Directory) root.add("foo", new Directory());
         Directory bar = (Directory) foo.add("bar", new Directory());
         bar.setReadOnly(true);
@@ -3161,7 +3150,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCheckAccessOnlyExecuteFile() {
+    void testCheckAccessOnlyExecuteFile() {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
 
@@ -3171,7 +3160,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCheckAccessOnlyExecuteDirectory() throws IOException {
+    void testCheckAccessOnlyExecuteDirectory() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new Directory());
 
@@ -3179,7 +3168,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCheckAccessLink() throws IOException {
+    void testCheckAccessLink() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new Directory());
         Link link = (Link) foo.add("link", new Link("bar"));
@@ -3189,7 +3178,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testCheckAccessBrokenLink() {
+    void testCheckAccessBrokenLink() {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new Directory());
         Link link = (Link) foo.add("link", new Link("baz"));
@@ -3203,7 +3192,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.setTimes
 
     @Test
-    public void setTimesAllTimes() throws IOException {
+    void setTimesAllTimes() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         FileTime oldLastModified = foo.getLastModifiedTime();
         FileTime oldLastAccess = foo.getLastAccessTime();
@@ -3221,7 +3210,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void setTimesOnlyLastModified() throws IOException {
+    void setTimesOnlyLastModified() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         FileTime oldLastModified = foo.getLastModifiedTime();
         FileTime oldLastAccess = foo.getLastAccessTime();
@@ -3237,7 +3226,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void setTimesOnlyLastAccess() throws IOException {
+    void setTimesOnlyLastAccess() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         FileTime oldLastModified = foo.getLastModifiedTime();
         FileTime oldLastAccess = foo.getLastAccessTime();
@@ -3253,7 +3242,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void setTimesOnlyCreate() throws IOException {
+    void setTimesOnlyCreate() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         FileTime oldLastModified = foo.getLastModifiedTime();
         FileTime oldLastAccess = foo.getLastAccessTime();
@@ -3271,7 +3260,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.setReadOnly
 
     @Test
-    public void testSetReadOnly() throws IOException {
+    void testSetReadOnly() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         assertFalse(foo.isReadOnly());
@@ -3284,7 +3273,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testSetReadOnlyNonExisting() {
+    void testSetReadOnlyNonExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").setReadOnly(true, true));
         assertEquals("/foo", exception.getFile());
     }
@@ -3292,7 +3281,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.setHidden
 
     @Test
-    public void testSetHidden() throws IOException {
+    void testSetHidden() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         assertFalse(foo.isHidden());
@@ -3305,7 +3294,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testSetHiddenNonExisting() {
+    void testSetHiddenNonExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").setHidden(true, true));
         assertEquals("/foo", exception.getFile());
     }
@@ -3313,7 +3302,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.readAttributes (MemoryFileAttributes variant)
 
     @Test
-    public void testReadAttributesDirectory() throws IOException {
+    void testReadAttributesDirectory() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         foo.setReadOnly(true);
@@ -3336,7 +3325,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesFile() throws IOException {
+    void testReadAttributesFile() throws IOException {
         File foo = (File) root.add("foo", new File());
 
         foo.setReadOnly(true);
@@ -3359,13 +3348,13 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesNonExisting() {
+    void testReadAttributesNonExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").readAttributes(true));
         assertEquals("/foo", exception.getFile());
     }
 
     @Test
-    public void testReadAttributesLinkFollowLinks() throws IOException {
+    void testReadAttributesLinkFollowLinks() throws IOException {
         Directory bar = (Directory) root.add("bar", new Directory());
         Link foo = (Link) root.add("foo", new Link("bar"));
 
@@ -3389,7 +3378,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesLinkNoFollowLinks() throws IOException {
+    void testReadAttributesLinkNoFollowLinks() throws IOException {
         Link foo = (Link) root.add("foo", new Link("bar"));
 
         foo.setReadOnly(true);
@@ -3412,7 +3401,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesLinkBroken() {
+    void testReadAttributesLinkBroken() {
         Link foo = (Link) root.add("foo", new Link("bar"));
 
         foo.setReadOnly(true);
@@ -3425,7 +3414,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.readAttributes (map variant)
 
     @Test
-    public void testReadAttributesMapNoTypeLastModifiedTime() throws IOException {
+    void testReadAttributesMapNoTypeLastModifiedTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "lastModifiedTime");
@@ -3434,7 +3423,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapNoTypeLastAccessTime() throws IOException {
+    void testReadAttributesMapNoTypeLastAccessTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "lastAccessTime");
@@ -3443,7 +3432,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapNoTypeCreateTime() throws IOException {
+    void testReadAttributesMapNoTypeCreateTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "creationTime");
@@ -3452,7 +3441,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapNoTypeBasicSize() throws IOException {
+    void testReadAttributesMapNoTypeBasicSize() throws IOException {
         File foo = (File) root.add("foo", new File());
         foo.setContent(new byte[1024]);
 
@@ -3462,7 +3451,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapNoTypeIsRegularFile() throws IOException {
+    void testReadAttributesMapNoTypeIsRegularFile() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "isRegularFile");
@@ -3471,7 +3460,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapNoTypeIsDirectory() throws IOException {
+    void testReadAttributesMapNoTypeIsDirectory() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "isDirectory");
@@ -3480,7 +3469,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapNoTypeIsSymbolicLink() throws IOException {
+    void testReadAttributesMapNoTypeIsSymbolicLink() throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "isSymbolicLink");
@@ -3489,7 +3478,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapNoTypeIsOther() throws IOException {
+    void testReadAttributesMapNoTypeIsOther() throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "isOther");
@@ -3498,7 +3487,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapNoTypeFileKey() throws IOException {
+    void testReadAttributesMapNoTypeFileKey() throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "fileKey");
@@ -3507,7 +3496,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapNoTypeMultiple() throws IOException {
+    void testReadAttributesMapNoTypeMultiple() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "lastModifiedTime,creationTime,isDirectory");
@@ -3519,7 +3508,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapNoTypeAll() throws IOException {
+    void testReadAttributesMapNoTypeAll() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "*");
@@ -3540,7 +3529,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapBasicLastModifiedTime() throws IOException {
+    void testReadAttributesMapBasicLastModifiedTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:lastModifiedTime");
@@ -3549,7 +3538,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapBasicLastAccessTime() throws IOException {
+    void testReadAttributesMapBasicLastAccessTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:lastAccessTime");
@@ -3558,7 +3547,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapBasicCreateTime() throws IOException {
+    void testReadAttributesMapBasicCreateTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:creationTime");
@@ -3567,7 +3556,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapBasicSize() throws IOException {
+    void testReadAttributesMapBasicSize() throws IOException {
         File foo = (File) root.add("foo", new File());
         foo.setContent(new byte[1024]);
 
@@ -3577,7 +3566,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapBasicIsRegularFile() throws IOException {
+    void testReadAttributesMapBasicIsRegularFile() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:isRegularFile");
@@ -3586,7 +3575,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapBasicIsDirectory() throws IOException {
+    void testReadAttributesMapBasicIsDirectory() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:isDirectory");
@@ -3595,7 +3584,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapBasicIsSymbolicLink() throws IOException {
+    void testReadAttributesMapBasicIsSymbolicLink() throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:isSymbolicLink");
@@ -3604,7 +3593,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapBasicIsOther() throws IOException {
+    void testReadAttributesMapBasicIsOther() throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:isOther");
@@ -3613,7 +3602,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapBasicFileKey() throws IOException {
+    void testReadAttributesMapBasicFileKey() throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:fileKey");
@@ -3622,7 +3611,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapBasicMultiple() throws IOException {
+    void testReadAttributesMapBasicMultiple() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:lastModifiedTime,creationTime,isDirectory");
@@ -3634,7 +3623,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapBasicAll() throws IOException {
+    void testReadAttributesMapBasicAll() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:*");
@@ -3655,7 +3644,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryLastModifiedTime() throws IOException {
+    void testReadAttributesMapMemoryLastModifiedTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:lastModifiedTime");
@@ -3664,7 +3653,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryLastAccessTime() throws IOException {
+    void testReadAttributesMapMemoryLastAccessTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:lastAccessTime");
@@ -3673,7 +3662,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryCreateTime() throws IOException {
+    void testReadAttributesMapMemoryCreateTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:creationTime");
@@ -3682,7 +3671,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemorySize() throws IOException {
+    void testReadAttributesMapMemorySize() throws IOException {
         File foo = (File) root.add("foo", new File());
         foo.setContent(new byte[1024]);
 
@@ -3692,7 +3681,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryIsRegularFile() throws IOException {
+    void testReadAttributesMapMemoryIsRegularFile() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:isRegularFile");
@@ -3701,7 +3690,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryIsDirectory() throws IOException {
+    void testReadAttributesMapMemoryIsDirectory() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:isDirectory");
@@ -3710,7 +3699,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryIsSymbolicLink() throws IOException {
+    void testReadAttributesMapMemoryIsSymbolicLink() throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:isSymbolicLink");
@@ -3719,7 +3708,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryIsOther() throws IOException {
+    void testReadAttributesMapMemoryIsOther() throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:isOther");
@@ -3728,7 +3717,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryFileKey() throws IOException {
+    void testReadAttributesMapMemoryFileKey() throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:fileKey");
@@ -3737,7 +3726,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryReadOnly() throws IOException {
+    void testReadAttributesMapMemoryReadOnly() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.setReadOnly(true);
 
@@ -3747,7 +3736,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryHidden() throws IOException {
+    void testReadAttributesMapMemoryHidden() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.setHidden(true);
 
@@ -3757,7 +3746,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryMultiple() throws IOException {
+    void testReadAttributesMapMemoryMultiple() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.setReadOnly(true);
 
@@ -3770,7 +3759,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapMemoryAll() throws IOException {
+    void testReadAttributesMapMemoryAll() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.setReadOnly(true);
 
@@ -3794,7 +3783,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapUnsupportedAttribute() {
+    void testReadAttributesMapUnsupportedAttribute() {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.setReadOnly(true);
 
@@ -3804,7 +3793,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapUnsupportedAttributePrefix() {
+    void testReadAttributesMapUnsupportedAttributePrefix() {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.setReadOnly(true);
 
@@ -3814,7 +3803,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testReadAttributesMapUnsupportedType() {
+    void testReadAttributesMapUnsupportedType() {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.setReadOnly(true);
 
@@ -3826,7 +3815,7 @@ public class MemoryFileStoreTest {
     // MemoryFileStore.setAttribute
 
     @Test
-    public void testSetAttributeLastModifiedTime() throws IOException {
+    void testSetAttributeLastModifiedTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileTime lastModifiedTime = FileTime.fromMillis(123456L);
@@ -3846,7 +3835,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testSetAttributeLastAccessTime() throws IOException {
+    void testSetAttributeLastAccessTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileTime lastAccessTime = FileTime.fromMillis(123456L);
@@ -3866,7 +3855,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testSetAttributeCreateTime() throws IOException {
+    void testSetAttributeCreateTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileTime creationTime = FileTime.fromMillis(123456L);
@@ -3886,7 +3875,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testSetAttributeReadOnly() throws IOException {
+    void testSetAttributeReadOnly() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         provider.setAttribute(createPath("/foo"), "memory:readOnly", true);
@@ -3897,7 +3886,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testSetAttributeHidden() throws IOException {
+    void testSetAttributeHidden() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         provider.setAttribute(createPath("/foo"), "memory:hidden", true);
@@ -3908,7 +3897,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testSetAttributeUnsupportedAttribute() {
+    void testSetAttributeUnsupportedAttribute() {
         root.add("foo", new Directory());
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
@@ -3917,7 +3906,7 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testSetAttributeUnsupportedType() {
+    void testSetAttributeUnsupportedType() {
         root.add("foo", new Directory());
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
@@ -3926,21 +3915,21 @@ public class MemoryFileStoreTest {
     }
 
     @Test
-    public void testSetAttributeInvalidValueType() {
+    void testSetAttributeInvalidValueType() {
         root.add("foo", new Directory());
 
         assertThrows(ClassCastException.class, () -> provider.setAttribute(createPath("/foo"), "memory:hidden", 1));
     }
 
     @Test
-    public void testSetAttributeNonExisting() {
+    void testSetAttributeNonExisting() {
         NoSuchFileException exception = assertThrows(NoSuchFileException.class,
                 () -> provider.setAttribute(createPath("/foo"), "memory:hidden", true));
         assertEquals("/foo", exception.getFile());
     }
 
     @Test
-    public void testClear() {
+    void testClear() {
         root.add("foo", new Directory());
         root.add("bar", new File());
 

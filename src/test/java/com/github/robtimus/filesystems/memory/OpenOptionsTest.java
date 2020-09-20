@@ -29,11 +29,10 @@ import java.util.EnumSet;
 import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.Messages;
 
-@SuppressWarnings("javadoc")
-public class OpenOptionsTest {
+class OpenOptionsTest {
 
     @Test
-    public void testForNewInputStream() {
+    void testForNewInputStream() {
         OpenOptions options = OpenOptions.forNewInputStream();
         assertTrue(options.read);
         assertFalse(options.write);
@@ -196,7 +195,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewInputStreamWithInvalid() {
+    void testForNewInputStreamWithInvalid() {
         testForNewInputStreamWithInvalid(StandardOpenOption.WRITE);
         testForNewInputStreamWithInvalid(StandardOpenOption.APPEND);
         testForNewInputStreamWithInvalid(StandardOpenOption.TRUNCATE_EXISTING);
@@ -210,7 +209,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewOutStream() {
+    void testForNewOutStream() {
         OpenOptions options = OpenOptions.forNewOutputStream();
         assertFalse(options.read);
         assertTrue(options.write);
@@ -461,7 +460,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewOutputStreamWithInvalid() {
+    void testForNewOutputStreamWithInvalid() {
         testForNewOutputStreamWithInvalid(StandardOpenOption.READ);
     }
 
@@ -471,7 +470,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewOutputStreamWithIllegalCombinations() {
+    void testForNewOutputStreamWithIllegalCombinations() {
         testForNewOutputStreamWithIllegalCombination(StandardOpenOption.APPEND, StandardOpenOption.TRUNCATE_EXISTING);
     }
 
@@ -481,7 +480,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewFileChannel() {
+    void testForNewFileChannel() {
         OpenOptions options = OpenOptions.forNewFileChannel(EnumSet.noneOf(StandardOpenOption.class));
         assertTrue(options.read);
         assertFalse(options.write);
@@ -572,7 +571,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewFileChannelWithInvalid() {
+    void testForNewFileChannelWithInvalid() {
         testForNewFileChannelInvalid(DummyOption.DUMMY);
     }
 
@@ -583,7 +582,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewFileChannelWithIllegalCombinations() {
+    void testForNewFileChannelWithIllegalCombinations() {
         testForNewFileChannelWithIllegalCombination(StandardOpenOption.READ, StandardOpenOption.APPEND);
         testForNewFileChannelWithIllegalCombination(StandardOpenOption.APPEND, StandardOpenOption.TRUNCATE_EXISTING);
     }
