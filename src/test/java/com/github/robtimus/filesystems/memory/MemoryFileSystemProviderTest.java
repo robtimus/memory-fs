@@ -45,6 +45,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystemAlreadyExistsException;
 import java.nio.file.FileSystemException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -55,6 +56,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.DosFileAttributes;
 import java.nio.file.attribute.FileOwnerAttributeView;
 import java.nio.file.attribute.FileTime;
+import java.nio.file.spi.FileSystemProvider;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Random;
@@ -188,6 +190,22 @@ class MemoryFileSystemProviderTest {
         URI uri = URI.create("https://www.github.com/");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
         assertEquals(Messages.uri().invalidScheme(uri, "memory").getMessage(), exception.getMessage());
+    }
+
+    // MemoryFileSystemProvider.isSameFile
+
+    @Test
+    void testIsSameFileWithDifferentTypes() throws IOException {
+
+        @SuppressWarnings("resource")
+        FileSystem defaultFileSystem = FileSystems.getDefault();
+        FileSystemProvider defaultProvider = defaultFileSystem.provider();
+
+        MemoryPath path1 = new MemoryPath(fs, "pom.xml");
+        Path path2 = Paths.get("pom.xml");
+
+        assertFalse(provider.isSameFile(path1, path2));
+        assertFalse(defaultProvider.isSameFile(path2, path1));
     }
 
     // MemoryFileSystemProvider.getFileAttributeView
