@@ -799,51 +799,51 @@ class MemoryFileStore extends FileStore {
 
         for (Map.Entry<String, Object> entry : result.entrySet()) {
             switch (entry.getKey()) {
-            case "basic:lastModifiedTime": //$NON-NLS-1$
-            case "memory:lastModifiedTime": //$NON-NLS-1$
-                entry.setValue(node.getLastModifiedTime());
-                break;
-            case "basic:lastAccessTime": //$NON-NLS-1$
-            case "memory:lastAccessTime": //$NON-NLS-1$
-                entry.setValue(node.getLastAccessTime());
-                break;
-            case "basic:creationTime": //$NON-NLS-1$
-            case "memory:creationTime": //$NON-NLS-1$
-                entry.setValue(node.getCreationTime());
-                break;
-            case "basic:size": //$NON-NLS-1$
-            case "memory:size": //$NON-NLS-1$
-                entry.setValue(node.getSize());
-                break;
-            case "basic:isRegularFile": //$NON-NLS-1$
-            case "memory:isRegularFile": //$NON-NLS-1$
-                entry.setValue(node.isRegularFile());
-                break;
-            case "basic:isDirectory": //$NON-NLS-1$
-            case "memory:isDirectory": //$NON-NLS-1$
-                entry.setValue(node.isDirectory());
-                break;
-            case "basic:isSymbolicLink": //$NON-NLS-1$
-            case "memory:isSymbolicLink": //$NON-NLS-1$
-                entry.setValue(false);
-                break;
-            case "basic:isOther": //$NON-NLS-1$
-            case "memory:isOther": //$NON-NLS-1$
-                entry.setValue(false);
-                break;
-            case "basic:fileKey": //$NON-NLS-1$
-            case "memory:fileKey": //$NON-NLS-1$
-                entry.setValue(null);
-                break;
-            case "memory:readOnly": //$NON-NLS-1$
-                entry.setValue(node.isReadOnly());
-                break;
-            case "memory:hidden": //$NON-NLS-1$
-                entry.setValue(node.isHidden());
-                break;
-            default:
-                // should not occur
-                throw new IllegalStateException("unexpected attribute name: " + entry.getKey()); //$NON-NLS-1$
+                case "basic:lastModifiedTime": //$NON-NLS-1$
+                case "memory:lastModifiedTime": //$NON-NLS-1$
+                    entry.setValue(node.getLastModifiedTime());
+                    break;
+                case "basic:lastAccessTime": //$NON-NLS-1$
+                case "memory:lastAccessTime": //$NON-NLS-1$
+                    entry.setValue(node.getLastAccessTime());
+                    break;
+                case "basic:creationTime": //$NON-NLS-1$
+                case "memory:creationTime": //$NON-NLS-1$
+                    entry.setValue(node.getCreationTime());
+                    break;
+                case "basic:size": //$NON-NLS-1$
+                case "memory:size": //$NON-NLS-1$
+                    entry.setValue(node.getSize());
+                    break;
+                case "basic:isRegularFile": //$NON-NLS-1$
+                case "memory:isRegularFile": //$NON-NLS-1$
+                    entry.setValue(node.isRegularFile());
+                    break;
+                case "basic:isDirectory": //$NON-NLS-1$
+                case "memory:isDirectory": //$NON-NLS-1$
+                    entry.setValue(node.isDirectory());
+                    break;
+                case "basic:isSymbolicLink": //$NON-NLS-1$
+                case "memory:isSymbolicLink": //$NON-NLS-1$
+                    entry.setValue(false);
+                    break;
+                case "basic:isOther": //$NON-NLS-1$
+                case "memory:isOther": //$NON-NLS-1$
+                    entry.setValue(false);
+                    break;
+                case "basic:fileKey": //$NON-NLS-1$
+                case "memory:fileKey": //$NON-NLS-1$
+                    entry.setValue(null);
+                    break;
+                case "memory:readOnly": //$NON-NLS-1$
+                    entry.setValue(node.isReadOnly());
+                    break;
+                case "memory:hidden": //$NON-NLS-1$
+                    entry.setValue(node.isHidden());
+                    break;
+                default:
+                    // should not occur
+                    throw new IllegalStateException("unexpected attribute name: " + entry.getKey()); //$NON-NLS-1$
             }
         }
         return result;
@@ -892,26 +892,26 @@ class MemoryFileStore extends FileStore {
 
     private void setAttribute(Node node, String attribute, Object value) {
         switch (attribute) {
-        case "basic:lastModifiedTime": //$NON-NLS-1$
-        case "memory:lastModifiedTime": //$NON-NLS-1$
-            node.setLastModifiedTime((FileTime) value);
-            break;
-        case "basic:lastAccessTime": //$NON-NLS-1$
-        case "memory:lastAccessTime": //$NON-NLS-1$
-            node.setLastAccessTime((FileTime) value);
-            break;
-        case "basic:creationTime": //$NON-NLS-1$
-        case "memory:creationTime": //$NON-NLS-1$
-            node.setCreationTime((FileTime) value);
-            break;
-        case "memory:readOnly": //$NON-NLS-1$
-            node.setReadOnly((Boolean) value);
-            break;
-        case "memory:hidden": //$NON-NLS-1$
-            node.setHidden((Boolean) value);
-            break;
-        default:
-            throw Messages.fileSystemProvider().unsupportedFileAttribute(attribute);
+            case "basic:lastModifiedTime": //$NON-NLS-1$
+            case "memory:lastModifiedTime": //$NON-NLS-1$
+                node.setLastModifiedTime((FileTime) value);
+                break;
+            case "basic:lastAccessTime": //$NON-NLS-1$
+            case "memory:lastAccessTime": //$NON-NLS-1$
+                node.setLastAccessTime((FileTime) value);
+                break;
+            case "basic:creationTime": //$NON-NLS-1$
+            case "memory:creationTime": //$NON-NLS-1$
+                node.setCreationTime((FileTime) value);
+                break;
+            case "memory:readOnly": //$NON-NLS-1$
+                node.setReadOnly((Boolean) value);
+                break;
+            case "memory:hidden": //$NON-NLS-1$
+                node.setHidden((Boolean) value);
+                break;
+            default:
+                throw Messages.fileSystemProvider().unsupportedFileAttribute(attribute);
         }
     }
 
