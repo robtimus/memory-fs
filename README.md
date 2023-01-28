@@ -1,4 +1,9 @@
 # memory-fs
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.robtimus/memory-fs)](https://search.maven.org/artifact/com.github.robtimus/memory-fs)
+[![Build Status](https://github.com/robtimus/memory-fs/actions/workflows/build.yml/badge.svg)](https://github.com/robtimus/memory-fs/actions/workflows/build.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=com.github.robtimus%3Amemory-fs&metric=alert_status)](https://sonarcloud.io/summary/overall?id=com.github.robtimus%3Amemory-fs)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=com.github.robtimus%3Amemory-fs&metric=coverage)](https://sonarcloud.io/summary/overall?id=com.github.robtimus%3Amemory-fs)
+[![Known Vulnerabilities](https://snyk.io/test/github/robtimus/memory-fs/badge.svg)](https://snyk.io/test/github/robtimus/memory-fs)
 
 The `memory-fs` library provides an in-memory NIO.2 file system. It can be used where a NIO.2 file system implementation is required, without needing to write anything to disk.
 
