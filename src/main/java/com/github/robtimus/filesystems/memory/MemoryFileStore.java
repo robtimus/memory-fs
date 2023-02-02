@@ -146,8 +146,12 @@ class MemoryFileStore extends FileStore {
         return path.toAbsolutePath().normalize();
     }
 
-    private Directory findParentNode(MemoryPath path) throws FileSystemException {
+    private void assertIsAbsolute(MemoryPath path) {
         assert path.isAbsolute() : "path must be absolute"; //$NON-NLS-1$
+    }
+
+    private Directory findParentNode(MemoryPath path) throws FileSystemException {
+        assertIsAbsolute(path);
 
         int nameCount = path.getNameCount();
         if (nameCount == 0) {
@@ -179,7 +183,7 @@ class MemoryFileStore extends FileStore {
     }
 
     private Node findNode(Directory parent, MemoryPath path) {
-        assert path.isAbsolute() : "path must be absolute"; //$NON-NLS-1$
+        assertIsAbsolute(path);
 
         if (parent == null) {
             return path.getNameCount() == 0 ? rootNode : null;
@@ -188,7 +192,7 @@ class MemoryFileStore extends FileStore {
     }
 
     private Node getExistingNode(MemoryPath path) throws FileSystemException {
-        assert path.isAbsolute() : "path must be absolute"; //$NON-NLS-1$
+        assertIsAbsolute(path);
 
         if (path.getNameCount() == 0) {
             return rootNode;
@@ -209,6 +213,13 @@ class MemoryFileStore extends FileStore {
             node = getExistingNode(resolvedPath);
         }
         return node;
+    }
+
+    private File validateIsFile(Node node, MemoryPath normalizedPath) throws FileSystemException {
+        if (node instanceof Directory) {
+            throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
+        }
+        return (File) node;
     }
 
     private MemoryPath resolveLink(Link link, MemoryPath path) throws FileSystemException {
@@ -272,10 +283,7 @@ class MemoryFileStore extends FileStore {
     synchronized byte[] getContent(MemoryPath path) throws IOException {
         MemoryPath normalizedPath = normalize(path);
         Node node = getExistingNode(normalizedPath, true);
-        if (node instanceof Directory) {
-            throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
-        }
-        File file = (File) node;
+        File file = validateIsFile(node, normalizedPath);
         return file.getContent();
     }
 
@@ -290,10 +298,7 @@ class MemoryFileStore extends FileStore {
             node = findNode(parent, resolvedPath);
             fileToSave = resolvedPath;
         }
-        if (node instanceof Directory) {
-            throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
-        }
-        File file = (File) node;
+        File file = validateIsFile(node, normalizedPath);
 
         if (file == null) {
             validateTarget(parent, fileToSave, normalizedPath, true);
@@ -313,10 +318,7 @@ class MemoryFileStore extends FileStore {
 
         MemoryPath normalizedPath = normalize(path);
         Node node = getExistingNode(normalizedPath, true);
-        if (node instanceof Directory) {
-            throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
-        }
-        File file = (File) node;
+        File file = validateIsFile(node, normalizedPath);
         OnCloseAction onClose = openOptions.deleteOnClose ? () -> delete(normalizedPath) : null;
 
         return file.newInputStream(onClose);
@@ -336,10 +338,7 @@ class MemoryFileStore extends FileStore {
             node = findNode(parent, resolvedPath);
             fileToSave = resolvedPath;
         }
-        if (node instanceof Directory) {
-            throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
-        }
-        File file = (File) node;
+        File file = validateIsFile(node, normalizedPath);
         OnCloseAction onClose = openOptions.deleteOnClose ? () -> delete(normalizedPath) : null;
 
         if (file == null) {
@@ -374,10 +373,7 @@ class MemoryFileStore extends FileStore {
             node = findNode(parent, resolvedPath);
             fileToSave = resolvedPath;
         }
-        if (node instanceof Directory) {
-            throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
-        }
-        File file = (File) node;
+        File file = validateIsFile(node, normalizedPath);
         OnCloseAction onClose = openOptions.deleteOnClose ? () -> delete(normalizedPath) : null;
 
         if (openOptions.read && !openOptions.write) {
@@ -401,17 +397,9 @@ class MemoryFileStore extends FileStore {
 
             // creating the file channel will update some of the attributes; therefore, set the attributes afterwards
 
-            @SuppressWarnings("resource")
             FileChannel channel = file.newFileChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
 
-            for (FileAttribute<?> attribute : attrs) {
-                try {
-                    setAttribute(file, attribute.name(), attribute.value());
-                } catch (IllegalArgumentException e) {
-                    channel.close();
-                    throw new UnsupportedOperationException(e.getMessage());
-                }
-            }
+            setAttributes(file, channel, attrs);
 
             parent.add(fileToSave.fileName(), file);
 
@@ -429,6 +417,17 @@ class MemoryFileStore extends FileStore {
             throw new AccessDeniedException(normalizedPath.path());
         }
         return file.newFileChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
+    }
+
+    private void setAttributes(File file, FileChannel channel, FileAttribute<?>... attrs) throws IOException {
+        for (FileAttribute<?> attribute : attrs) {
+            try {
+                setAttribute(file, attribute.name(), attribute.value());
+            } catch (IllegalArgumentException e) {
+                channel.close();
+                throw new UnsupportedOperationException(e.getMessage());
+            }
+        }
     }
 
     synchronized SeekableByteChannel newByteChannel(MemoryPath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
