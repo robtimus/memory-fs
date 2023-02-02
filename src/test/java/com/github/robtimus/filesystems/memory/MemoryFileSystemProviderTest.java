@@ -59,6 +59,7 @@ import java.nio.file.attribute.FileTime;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -141,7 +142,9 @@ class MemoryFileSystemProviderTest {
 
     @Test
     void testNewFileSystem() {
-        assertThrows(FileSystemAlreadyExistsException.class, () -> provider.newFileSystem(URI.create("memory:foo"), Collections.emptyMap()));
+        URI uri = URI.create("memory:foo");
+        Map<String, ?> env = Collections.emptyMap();
+        assertThrows(FileSystemAlreadyExistsException.class, () -> provider.newFileSystem(uri, env));
     }
 
     // MemoryFileSystemProvider.getFileSystem

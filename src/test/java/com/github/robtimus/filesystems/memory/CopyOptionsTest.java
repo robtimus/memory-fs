@@ -24,133 +24,232 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.file.CopyOption;
 import java.nio.file.LinkOption;
 import java.nio.file.StandardCopyOption;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.Messages;
 
 class CopyOptionsTest {
 
-    @Test
-    void testForCopy() {
-        CopyOptions options = CopyOptions.forCopy();
-        assertFalse(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+    @Nested
+    class ForCopy {
 
-        options = CopyOptions.forCopy(StandardCopyOption.COPY_ATTRIBUTES);
-        assertTrue(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+        @Test
+        void testWithNoOptions() {
+            CopyOptions options = CopyOptions.forCopy();
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING);
-        assertFalse(options.copyAttributes);
-        assertTrue(options.replaceExisting);
+            assertFalse(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
-        assertTrue(options.copyAttributes);
-        assertTrue(options.replaceExisting);
+        @Test
+        void testWithCopyAttributes() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.COPY_ATTRIBUTES);
 
-        options = CopyOptions.forCopy(StandardCopyOption.ATOMIC_MOVE);
-        assertFalse(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+            assertTrue(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
 
-        options = CopyOptions.forCopy(StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.ATOMIC_MOVE);
-        assertTrue(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+        @Test
+        void testWithReplaceExisting() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING);
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        assertFalse(options.copyAttributes);
-        assertTrue(options.replaceExisting);
+            assertFalse(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.ATOMIC_MOVE);
-        assertTrue(options.copyAttributes);
-        assertTrue(options.replaceExisting);
+        @Test
+        void testWithReplaceExistingAndCopyAttributes() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
 
-        options = CopyOptions.forCopy(LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+            assertTrue(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
 
-        options = CopyOptions.forCopy(StandardCopyOption.COPY_ATTRIBUTES, LinkOption.NOFOLLOW_LINKS);
-        assertTrue(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+        @Test
+        void testWithAtomicMove() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.ATOMIC_MOVE);
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.copyAttributes);
-        assertTrue(options.replaceExisting);
+            assertFalse(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES, LinkOption.NOFOLLOW_LINKS);
-        assertTrue(options.copyAttributes);
-        assertTrue(options.replaceExisting);
+        @Test
+        void testWithCopyAttributesAndAtomicMove() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.ATOMIC_MOVE);
 
-        options = CopyOptions.forCopy(StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+            assertTrue(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
 
-        options = CopyOptions.forCopy(StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
-        assertTrue(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+        @Test
+        void testWithReplaceExistingAndAtomicMove() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.copyAttributes);
-        assertTrue(options.replaceExisting);
+            assertFalse(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.ATOMIC_MOVE,
-                LinkOption.NOFOLLOW_LINKS);
-        assertTrue(options.copyAttributes);
-        assertTrue(options.replaceExisting);
+        @Test
+        void testWithReplaceExistingAndCopyAttributesAndAtomicMove() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES,
+                    StandardCopyOption.ATOMIC_MOVE);
+
+            assertTrue(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
+
+        @Test
+        void testWithNoFollowLinks() {
+            CopyOptions options = CopyOptions.forCopy(LinkOption.NOFOLLOW_LINKS);
+
+            assertFalse(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
+
+        @Test
+        void testWithCopyAttributesNoFollowLinks() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.COPY_ATTRIBUTES, LinkOption.NOFOLLOW_LINKS);
+
+            assertTrue(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
+
+        @Test
+        void testWithReplaceExistingAndNoFollowLinks() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
+
+            assertFalse(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
+
+        @Test
+        void testWithReplaceExistingAndCopyAttributesAndNoFollowLinks() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES,
+                    LinkOption.NOFOLLOW_LINKS);
+
+            assertTrue(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
+
+        @Test
+        void testWithAtomicMoveAndNoFollowLinks() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
+
+            assertFalse(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
+
+        @Test
+        void testWithCopyAttributesAndAtomicMoveAndNoFollowLinks() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
+
+            assertTrue(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
+
+        @Test
+        void testWithReplaceExistingAndAtomicMoveAndNoFollowLinks() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
+
+            assertFalse(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
+
+        @Test
+        void testWithReplaceExistingAndCopyAttributesAndAtomicMoveAndNoFollowLinks() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES,
+                    StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
+
+            assertTrue(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
+
+        @Test
+        void testWithUnsupported() {
+            testWithUnsupported(DummyOption.DUMMY);
+        }
+
+        private void testWithUnsupported(CopyOption option) {
+            UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> CopyOptions.forCopy(option));
+            assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
+        }
     }
 
-    @Test
-    void testForCopyWithInvalid() {
-        testForCopyWithInvalid(DummyOption.DUMMY);
-    }
+    @Nested
+    class ForMove {
 
-    private void testForCopyWithInvalid(CopyOption option) {
-        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> CopyOptions.forCopy(option));
-        assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
-    }
+        @Test
+        void testWithNoOptions() {
+            CopyOptions options = CopyOptions.forMove();
+            assertFalse(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
 
-    @Test
-    void testForMove() {
-        CopyOptions options = CopyOptions.forMove();
-        assertFalse(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+        @Test
+        void testWithReplaceExisting() {
+            CopyOptions options = CopyOptions.forMove(StandardCopyOption.REPLACE_EXISTING);
 
-        options = CopyOptions.forMove(StandardCopyOption.REPLACE_EXISTING);
-        assertFalse(options.copyAttributes);
-        assertTrue(options.replaceExisting);
+            assertFalse(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
 
-        options = CopyOptions.forMove(StandardCopyOption.ATOMIC_MOVE);
-        assertFalse(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+        @Test
+        void testWithAtomicMove() {
+            CopyOptions options = CopyOptions.forMove(StandardCopyOption.ATOMIC_MOVE);
 
-        options = CopyOptions.forMove(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        assertFalse(options.copyAttributes);
-        assertTrue(options.replaceExisting);
+            assertFalse(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
 
-        options = CopyOptions.forMove(LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+        @Test
+        void testWithReplaceExistingAndAtomicMove() {
+            CopyOptions options = CopyOptions.forMove(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 
-        options = CopyOptions.forMove(StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.copyAttributes);
-        assertTrue(options.replaceExisting);
+            assertFalse(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
 
-        options = CopyOptions.forMove(StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.copyAttributes);
-        assertFalse(options.replaceExisting);
+        @Test
+        void testWithNoFollowLinks() {
+            CopyOptions options = CopyOptions.forMove(LinkOption.NOFOLLOW_LINKS);
 
-        options = CopyOptions.forMove(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.copyAttributes);
-        assertTrue(options.replaceExisting);
-    }
+            assertFalse(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
 
-    @Test
-    void testForMoveWithInvalid() {
-        StandardCopyOption option = StandardCopyOption.COPY_ATTRIBUTES;
-        testForMoveWithInvalid(option);
-    }
+        @Test
+        void testWithReplaceExistingAndNoFollowLinks() {
+            CopyOptions options = CopyOptions.forMove(StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
 
-    private void testForMoveWithInvalid(CopyOption option) {
-        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> CopyOptions.forMove(option));
-        assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
+            assertFalse(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
+
+        @Test
+        void testWithAtomicMoveAndNoFollowLinks() {
+            CopyOptions options = CopyOptions.forMove(StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
+
+            assertFalse(options.copyAttributes);
+            assertFalse(options.replaceExisting);
+        }
+
+        @Test
+        void testWithReplaceExistingAndAtomicMoveAndNoFollowLinks() {
+            CopyOptions options = CopyOptions.forMove(StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
+
+            assertFalse(options.copyAttributes);
+            assertTrue(options.replaceExisting);
+        }
+
+        @Test
+        void testWithCopyAttributes() {
+            testWithInvalid(StandardCopyOption.COPY_ATTRIBUTES);
+        }
+
+        private void testWithInvalid(CopyOption option) {
+            UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> CopyOptions.forMove(option));
+            assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
+        }
     }
 
     enum DummyOption implements CopyOption {
