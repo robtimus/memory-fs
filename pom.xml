@@ -63,6 +63,7 @@
 
   <properties>
     <version.fs-core>2.2-SNAPSHOT</version.fs-core>
+    <version.junit-support>2.1</version.junit-support>
   </properties>
 
   <dependencies>
@@ -87,6 +88,13 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.robtimus</groupId>
+      <artifactId>junit-support</artifactId>
+      <version>${version.junit-support}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

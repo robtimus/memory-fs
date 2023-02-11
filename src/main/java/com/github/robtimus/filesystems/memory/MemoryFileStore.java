@@ -70,6 +70,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -209,7 +210,7 @@ class MemoryFileStore extends FileStore {
         return parent.get(path.fileName());
     }
 
-    private Node getExistingNode(MemoryPath path) throws FileSystemException {
+    private Node findExistingNode(MemoryPath path) throws FileSystemException {
         assertIsAbsolute(path);
 
         if (path.getNameCount() == 0) {
@@ -217,7 +218,11 @@ class MemoryFileStore extends FileStore {
         }
 
         Directory parent = findParentNode(path);
-        Node node = parent != null ? parent.get(path.fileName()) : null;
+        return parent != null ? parent.get(path.fileName()) : null;
+    }
+
+    private Node getExistingNode(MemoryPath path) throws FileSystemException {
+        Node node = findExistingNode(path);
         if (node == null) {
             throw new NoSuchFileException(path.path());
         }
@@ -233,7 +238,7 @@ class MemoryFileStore extends FileStore {
         return node;
     }
 
-    private File validateIsFile(Node node, MemoryPath normalizedPath) throws FileSystemException {
+    private File validateIsNotDirectory(Node node, MemoryPath normalizedPath) throws FileSystemException {
         if (node instanceof Directory) {
             throw Messages.fileSystemProvider().isDirectory(normalizedPath.path());
         }
@@ -301,8 +306,21 @@ class MemoryFileStore extends FileStore {
     synchronized byte[] getContent(MemoryPath path) throws IOException {
         MemoryPath normalizedPath = normalize(path);
         Node node = getExistingNode(normalizedPath, true);
-        File file = validateIsFile(node, normalizedPath);
+        File file = validateIsNotDirectory(node, normalizedPath);
         return file.getContent();
+    }
+
+    synchronized Optional<byte[]> getContentIfExists(MemoryPath path) throws FileSystemException {
+        MemoryPath normalizedPath = normalize(path);
+        MemoryPath resolvedPath = normalizedPath;
+        Node node = findExistingNode(resolvedPath);
+        while (node instanceof Link) {
+            resolvedPath = resolveLink((Link) node, resolvedPath);
+            node = findExistingNode(resolvedPath);
+        }
+        File file = validateIsNotDirectory(node, resolvedPath);
+        return Optional.ofNullable(file)
+                .map(File::getContent);
     }
 
     synchronized void setContent(MemoryPath path, byte[] content) throws IOException {
@@ -316,7 +334,7 @@ class MemoryFileStore extends FileStore {
             node = findNode(parent, resolvedPath);
             fileToSave = resolvedPath;
         }
-        File file = validateIsFile(node, normalizedPath);
+        File file = validateIsNotDirectory(node, normalizedPath);
 
         if (file == null) {
             validateTarget(parent, fileToSave, normalizedPath, true);
@@ -336,7 +354,7 @@ class MemoryFileStore extends FileStore {
 
         MemoryPath normalizedPath = normalize(path);
         Node node = getExistingNode(normalizedPath, true);
-        File file = validateIsFile(node, normalizedPath);
+        File file = validateIsNotDirectory(node, normalizedPath);
         OnCloseAction onClose = openOptions.deleteOnClose ? () -> delete(normalizedPath) : null;
 
         return file.newInputStream(onClose);
@@ -356,7 +374,7 @@ class MemoryFileStore extends FileStore {
             node = findNode(parent, resolvedPath);
             fileToSave = resolvedPath;
         }
-        File file = validateIsFile(node, normalizedPath);
+        File file = validateIsNotDirectory(node, normalizedPath);
         OnCloseAction onClose = openOptions.deleteOnClose ? () -> delete(normalizedPath) : null;
 
         if (file == null) {
@@ -391,7 +409,7 @@ class MemoryFileStore extends FileStore {
             node = findNode(parent, resolvedPath);
             fileToSave = resolvedPath;
         }
-        File file = validateIsFile(node, normalizedPath);
+        File file = validateIsNotDirectory(node, normalizedPath);
         OnCloseAction onClose = openOptions.deleteOnClose ? () -> delete(normalizedPath) : null;
 
         if (openOptions.read && !openOptions.write) {

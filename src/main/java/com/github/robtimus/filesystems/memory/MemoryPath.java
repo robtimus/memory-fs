@@ -39,6 +39,7 @@ import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import com.github.robtimus.filesystems.LinkOptionSupport;
 import com.github.robtimus.filesystems.Messages;
@@ -157,6 +158,10 @@ final class MemoryPath extends SimpleAbstractPath {
 
     byte[] getContent() throws IOException {
         return fs.getContent(this);
+    }
+
+    Optional<byte[]> getContentIfExists() throws IOException {
+        return fs.getContentIfExists(this);
     }
 
     void setContent(byte[] content) throws IOException {

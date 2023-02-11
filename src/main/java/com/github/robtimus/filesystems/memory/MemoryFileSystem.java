@@ -46,6 +46,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import com.github.robtimus.filesystems.Messages;
@@ -160,6 +161,10 @@ final class MemoryFileSystem extends FileSystem {
 
     byte[] getContent(MemoryPath path) throws IOException {
         return fileStore.getContent(path);
+    }
+
+    Optional<byte[]> getContentIfExists(MemoryPath path) throws IOException {
+        return fileStore.getContentIfExists(path);
     }
 
     void setContent(MemoryPath path, byte[] content) throws IOException {

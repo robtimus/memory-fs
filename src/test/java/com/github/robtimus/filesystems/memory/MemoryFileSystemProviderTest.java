@@ -17,6 +17,8 @@
 
 package com.github.robtimus.filesystems.memory;
 
+import static com.github.robtimus.junit.support.OptionalAssertions.assertIsEmpty;
+import static com.github.robtimus.junit.support.OptionalAssertions.assertIsPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -390,6 +392,14 @@ class MemoryFileSystemProviderTest {
     }
 
     @Test
+    void testGetContentNonExistingParent() {
+        Path bar = Paths.get(URI.create("memory:/foo/bar"));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> MemoryFileSystemProvider.getContent(bar));
+        assertEquals(bar.toString(), exception.getFile());
+    }
+
+    @Test
     void testGetContentDirectory() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createDirectory(foo);
@@ -421,6 +431,127 @@ class MemoryFileSystemProviderTest {
 
         } finally {
             Files.delete(foo);
+            Files.deleteIfExists(link);
+        }
+    }
+
+    @Test
+    void testGetContentBrokenLink() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path link = Paths.get(URI.create("memory:/link"));
+        Files.createFile(foo);
+        try {
+            Files.createSymbolicLink(link, foo);
+            Files.delete(foo);
+
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> MemoryFileSystemProvider.getContent(foo));
+            assertEquals(foo.toString(), exception.getFile());
+
+        } finally {
+            Files.deleteIfExists(foo);
+            Files.deleteIfExists(link);
+        }
+    }
+
+    @Test
+    void testGetContentIfExistsFromString() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createFile(foo);
+        try {
+            assertArrayEquals(new byte[0], assertIsPresent(MemoryFileSystemProvider.getContentIfExists("/foo")));
+
+            byte[] newContent = randomBytes();
+
+            Files.write(foo, newContent);
+
+            assertArrayEquals(newContent, assertIsPresent(MemoryFileSystemProvider.getContentIfExists("/foo")));
+
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test
+    void testGetContentIfExistsExisting() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createFile(foo);
+        try {
+            assertArrayEquals(new byte[0], assertIsPresent(MemoryFileSystemProvider.getContentIfExists(foo)));
+
+            byte[] newContent = randomBytes();
+
+            Files.write(foo, newContent);
+
+            assertArrayEquals(newContent, assertIsPresent(MemoryFileSystemProvider.getContentIfExists(foo)));
+
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test
+    void testGetContentIfExistsNonExisting() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+
+        assertIsEmpty(MemoryFileSystemProvider.getContentIfExists(foo));
+    }
+
+    @Test
+    void testGetContentIfExistsNonExistingParent() throws IOException {
+        Path bar = Paths.get(URI.create("memory:/foo/bar"));
+
+        assertIsEmpty(MemoryFileSystemProvider.getContentIfExists(bar));
+    }
+
+    @Test
+    void testGetContentIfExistsDirectory() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createDirectory(foo);
+
+        try {
+            FileSystemException exception = assertThrows(FileSystemException.class, () -> MemoryFileSystemProvider.getContentIfExists(foo));
+            assertEquals("/foo", exception.getFile());
+            assertEquals(Messages.fileSystemProvider().isDirectory(foo.toString()).getReason(), exception.getReason());
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test
+    void testGetContentIfExistsLink() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path link = Paths.get(URI.create("memory:/link"));
+        Files.createFile(foo);
+        try {
+            Files.createSymbolicLink(link, foo);
+
+            assertArrayEquals(new byte[0], assertIsPresent(MemoryFileSystemProvider.getContentIfExists(link)));
+
+            byte[] newContent = randomBytes();
+
+            Files.write(foo, newContent);
+
+            assertArrayEquals(newContent, assertIsPresent(MemoryFileSystemProvider.getContentIfExists(link)));
+
+        } finally {
+            Files.delete(foo);
+            Files.deleteIfExists(link);
+        }
+    }
+
+    @Test
+    void testGetContentIfExistsBrokenLink() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path link = Paths.get(URI.create("memory:/link"));
+        Files.createFile(foo);
+        try {
+            Files.createSymbolicLink(link, foo);
+            Files.delete(foo);
+
+            assertIsEmpty(MemoryFileSystemProvider.getContentIfExists(foo));
+
+        } finally {
+            Files.deleteIfExists(foo);
             Files.deleteIfExists(link);
         }
     }
@@ -470,6 +601,14 @@ class MemoryFileSystemProviderTest {
     }
 
     @Test
+    void testGetContentAsStringNonExistingParent() {
+        Path bar = Paths.get(URI.create("memory:/foo/bar"));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> MemoryFileSystemProvider.getContentAsString(bar));
+        assertEquals(bar.toString(), exception.getFile());
+    }
+
+    @Test
     void testGetContentAsStringDirectory() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         Files.createDirectory(foo);
@@ -501,6 +640,127 @@ class MemoryFileSystemProviderTest {
 
         } finally {
             Files.delete(foo);
+            Files.deleteIfExists(link);
+        }
+    }
+
+    @Test
+    void testGetContentAsStringBrokenLink() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path link = Paths.get(URI.create("memory:/link"));
+        Files.createFile(foo);
+        try {
+            Files.createSymbolicLink(link, foo);
+            Files.delete(foo);
+
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> MemoryFileSystemProvider.getContentAsString(foo));
+            assertEquals(foo.toString(), exception.getFile());
+
+        } finally {
+            Files.deleteIfExists(foo);
+            Files.deleteIfExists(link);
+        }
+    }
+
+    @Test
+    void testGetContentAsStringIfExistsFromString() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createFile(foo);
+        try {
+            assertEquals("", assertIsPresent(MemoryFileSystemProvider.getContentAsStringIfExists("/foo")));
+
+            String newContent = randomText();
+
+            Files.write(foo, newContent.getBytes(StandardCharsets.UTF_8));
+
+            assertEquals(newContent, assertIsPresent(MemoryFileSystemProvider.getContentAsStringIfExists("/foo")));
+
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test
+    void testGetContentAsStringIfExistsExisting() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createFile(foo);
+        try {
+            assertEquals("", assertIsPresent(MemoryFileSystemProvider.getContentAsStringIfExists(foo)));
+
+            String newContent = randomText();
+
+            Files.write(foo, newContent.getBytes(StandardCharsets.UTF_8));
+
+            assertEquals(newContent, assertIsPresent(MemoryFileSystemProvider.getContentAsStringIfExists(foo)));
+
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test
+    void testGetContentAsStringIfExistsNonExisting() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+
+        assertIsEmpty(MemoryFileSystemProvider.getContentAsStringIfExists(foo));
+    }
+
+    @Test
+    void testGetContentAsStringIfExistsNonExistingParent() throws IOException {
+        Path bar = Paths.get(URI.create("memory:/foo/bar"));
+
+        assertIsEmpty(MemoryFileSystemProvider.getContentAsStringIfExists(bar));
+    }
+
+    @Test
+    void testGetContentAsStringIfExistsDirectory() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Files.createDirectory(foo);
+
+        try {
+            FileSystemException exception = assertThrows(FileSystemException.class, () -> MemoryFileSystemProvider.getContentAsStringIfExists(foo));
+            assertEquals("/foo", exception.getFile());
+            assertEquals(Messages.fileSystemProvider().isDirectory(foo.toString()).getReason(), exception.getReason());
+        } finally {
+            Files.delete(foo);
+        }
+    }
+
+    @Test
+    void testGetContentAsStringIfExistsLink() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path link = Paths.get(URI.create("memory:/link"));
+        Files.createFile(foo);
+        try {
+            Files.createSymbolicLink(link, foo);
+
+            assertEquals("", assertIsPresent(MemoryFileSystemProvider.getContentAsStringIfExists(link)));
+
+            String newContent = randomText();
+
+            Files.write(foo, newContent.getBytes(StandardCharsets.UTF_8));
+
+            assertEquals(newContent, assertIsPresent(MemoryFileSystemProvider.getContentAsStringIfExists(link)));
+
+        } finally {
+            Files.delete(foo);
+            Files.deleteIfExists(link);
+        }
+    }
+
+    @Test
+    void testGetContentAsStringIfExistsBrokenLink() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path link = Paths.get(URI.create("memory:/link"));
+        Files.createFile(foo);
+        try {
+            Files.createSymbolicLink(link, foo);
+            Files.delete(foo);
+
+            assertIsEmpty(MemoryFileSystemProvider.getContentAsStringIfExists(foo));
+
+        } finally {
+            Files.deleteIfExists(foo);
             Files.deleteIfExists(link);
         }
     }
@@ -652,6 +912,27 @@ class MemoryFileSystemProviderTest {
     }
 
     @Test
+    void testSetContentBrokenLink() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path link = Paths.get(URI.create("memory:/link"));
+        Files.createFile(foo);
+        try {
+            Files.createSymbolicLink(link, foo);
+            Files.delete(foo);
+
+            byte[] newContent = randomBytes();
+
+            MemoryFileSystemProvider.setContent(link, newContent);
+
+            assertArrayEquals(newContent, Files.readAllBytes(foo));
+
+        } finally {
+            Files.deleteIfExists(foo);
+            Files.deleteIfExists(link);
+        }
+    }
+
+    @Test
     void testSetContentAsStringFromString() throws IOException {
         Path foo = Paths.get(URI.create("memory:/foo"));
         try {
@@ -796,6 +1077,27 @@ class MemoryFileSystemProviderTest {
 
         } finally {
             Files.delete(foo);
+            Files.deleteIfExists(link);
+        }
+    }
+
+    @Test
+    void testSetContentAsStringBrokenLink() throws IOException {
+        Path foo = Paths.get(URI.create("memory:/foo"));
+        Path link = Paths.get(URI.create("memory:/link"));
+        Files.createFile(foo);
+        try {
+            Files.createSymbolicLink(link, foo);
+            Files.delete(foo);
+
+            String newContent = randomText();
+
+            MemoryFileSystemProvider.setContentAsString(link, newContent);
+
+            assertArrayEquals(newContent.getBytes(StandardCharsets.UTF_8), Files.readAllBytes(foo));
+
+        } finally {
+            Files.deleteIfExists(foo);
             Files.deleteIfExists(link);
         }
     }

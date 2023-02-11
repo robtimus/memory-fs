@@ -45,6 +45,7 @@ import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import com.github.robtimus.filesystems.LinkOptionSupport;
 import com.github.robtimus.filesystems.Messages;
@@ -277,9 +278,7 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
      * @since 1.1
      */
     public static byte[] getContent(String path) throws IOException {
-        Objects.requireNonNull(path);
-        URI uri = URI.create("memory:" + path); //$NON-NLS-1$
-        return getContent(Paths.get(uri));
+        return getContent(toMemoryPath(path));
     }
 
     /**
@@ -296,6 +295,40 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
      */
     public static byte[] getContent(Path path) throws IOException {
         return toMemoryPath(path).getContent();
+    }
+
+    /**
+     * Returns the content of an existing file. This method is shorthand for the following: <pre>
+     * URI uri = URI.create("memory:" + path);
+     * return getContentIfExists(Paths.get(uri));</pre>
+     *
+     * @param path The path to the file to return the content of.
+     * @return An {@link Optional} describing the content of the given file, or {@link Optional#empty()} if the file does not exist.
+     * @throws NullPointerException If the given path is {@code null}.
+     * @throws IllegalArgumentException If the path does not lead to a valid URI.
+     * @throws IOException If an I/O error occurs.
+     * @see #getContent(Path)
+     * @since 2.1
+     */
+    public static Optional<byte[]> getContentIfExists(String path) throws IOException {
+        return getContentIfExists(toMemoryPath(path));
+    }
+
+    /**
+     * Returns the content of a file.
+     * <p>
+     * This method works like {@link Files#readAllBytes(Path)} but is more optimized for in-memory paths. It also does not fail if a file or any of
+     * its parent directories does not exist.
+     *
+     * @param path The path to the file to return the content of.
+     * @return An {@link Optional} describing the content of the given file, or {@link Optional#empty()} if the file does not exist.
+     * @throws NullPointerException If the given path is {@code null}.
+     * @throws ProviderMismatchException If the given path is not an in-memory path.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static Optional<byte[]> getContentIfExists(Path path) throws IOException {
+        return toMemoryPath(path).getContentIfExists();
     }
 
     /**
@@ -371,6 +404,78 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     }
 
     /**
+     * Returns the content of an existing file.
+     * <p>
+     * This method is wrapper around {@link #getContentIfExists(String)} that converts the content into a string using the
+     * {@link StandardCharsets#UTF_8 UTF-8} {@link Charset charset}.
+     *
+     * @param path The path to the file to return the content of.
+     * @return An {@link Optional} describing the content of the given file, or {@link Optional#empty()} if the file does not exist.
+     * @throws NullPointerException If the given path is {@code null}.
+     * @throws IllegalArgumentException If the path does not lead to a valid URI.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static Optional<String> getContentAsStringIfExists(String path) throws IOException {
+        return getContentAsStringIfExists(path, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Returns the content of an existing file.
+     * <p>
+     * This method is wrapper around {@link #getContentIfExists(String)} that converts the content into a string.
+     *
+     * @param path The path to the file to return the content of.
+     * @param charset The charset to use for converting the contents into a string.
+     * @return An {@link Optional} describing the content of the given file, or {@link Optional#empty()} if the file does not exist.
+     * @throws NullPointerException If the given path or charset is {@code null}.
+     * @throws IllegalArgumentException If the path does not lead to a valid URI.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static Optional<String> getContentAsStringIfExists(String path, Charset charset) throws IOException {
+        Objects.requireNonNull(charset);
+        return getContentIfExists(path)
+                .map(content -> new String(content, charset));
+    }
+
+    /**
+     * Returns the content of an existing file.
+     * <p>
+     * This method is wrapper around {@link #getContentIfExists(Path)} that converts the content into a string using the
+     * {@link StandardCharsets#UTF_8 UTF-8} {@link Charset charset}.
+     *
+     * @param path The path to the file to return the content of.
+     * @return An {@link Optional} describing the content of the given file, or {@link Optional#empty()} if the file does not exist.
+     * @throws NullPointerException If the given path is {@code null}.
+     * @throws ProviderMismatchException If the given path is not an in-memory path.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static Optional<String> getContentAsStringIfExists(Path path) throws IOException {
+        return getContentAsStringIfExists(path, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Returns the content of an existing file.
+     * <p>
+     * This method is wrapper around {@link #getContentIfExists(Path)} that converts the content into a string.
+     *
+     * @param path The path to the file to return the content of.
+     * @param charset The charset to use for converting the contents into a string.
+     * @return An {@link Optional} describing the content of the given file, or {@link Optional#empty()} if the file does not exist.
+     * @throws NullPointerException If the given path or charset is {@code null}.
+     * @throws ProviderMismatchException If the given path is not an in-memory path.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static Optional<String> getContentAsStringIfExists(Path path, Charset charset) throws IOException {
+        Objects.requireNonNull(charset);
+        return getContentIfExists(path)
+                .map(content -> new String(content, charset));
+    }
+
+    /**
      * Sets the content of a file. If the file does not exist it will be created. This method is shorthand for the following: <pre>
      * URI uri = URI.create("memory:" + path);
      * setContents(Paths.get(uri), content);</pre>
@@ -384,9 +489,7 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
      * @since 1.1
      */
     public static void setContent(String path, byte[] content) throws IOException {
-        Objects.requireNonNull(path);
-        URI uri = URI.create("memory:" + path); //$NON-NLS-1$
-        setContent(Paths.get(uri), content);
+        setContent(toMemoryPath(path), content);
     }
 
     /**
@@ -481,6 +584,12 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
             return (MemoryPath) path;
         }
         throw new ProviderMismatchException();
+    }
+
+    private static Path toMemoryPath(String path) {
+        Objects.requireNonNull(path);
+        URI uri = URI.create("memory:" + path); //$NON-NLS-1$
+        return Paths.get(uri);
     }
 
     /**
