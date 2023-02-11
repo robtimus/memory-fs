@@ -47,8 +47,14 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.DosFileAttributeView;
 import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.FileAttributeView;
+import java.nio.file.attribute.FileOwnerAttributeView;
 import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.PosixFileAttributeView;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -58,7 +64,7 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.attribute.SimpleFileAttribute;
 import com.github.robtimus.filesystems.memory.MemoryFileStore.Directory;
@@ -86,6 +92,61 @@ class MemoryFileStoreTest {
 
     private MemoryPath createPath(String path) {
         return new MemoryPath(fs, path);
+    }
+
+    // Methods defined on FileStore
+
+    @Test
+    void testName() {
+        assertEquals("/", store.name());
+    }
+
+    @Test
+    void testType() {
+        assertEquals("memory", store.type());
+    }
+
+    @Test
+    void testIsReadOnly() {
+        assertFalse(store.isReadOnly());
+    }
+
+    // Don't test getTotalSpace, getUsableSpace or getUnallocatedSpace, as these values are very volatile
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(classes = { BasicFileAttributeView.class, MemoryFileAttributeView.class })
+    void testSupportsFileAttributeView(Class<? extends FileAttributeView> type) {
+        assertTrue(store.supportsFileAttributeView(type));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(classes = { FileOwnerAttributeView.class, PosixFileAttributeView.class, DosFileAttributeView.class, AclFileAttributeView.class })
+    void testSupportsFileAttributeViewNotSupported(Class<? extends FileAttributeView> type) {
+        assertFalse(store.supportsFileAttributeView(type));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "basic", "memory" })
+    void testSupportsFileAttributeView(String name) {
+        assertTrue(store.supportsFileAttributeView(name));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "owner", "posix", "dos", "acl" })
+    void testSupportsFileAttributeViewNotSupported(String name) {
+        assertFalse(store.supportsFileAttributeView(name));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "totalSpace", "usableSpace", "unallocatedSpace" })
+    void testGetAttribute(String attribute) throws IOException {
+        assertNotNull(store.getAttribute(attribute));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "size", "owner" })
+    void testGetAttributeNotSupported(String attribute) {
+        assertThrows(UnsupportedOperationException.class, () -> store.getAttribute(attribute));
     }
 
     // The tests below do not call methods directly on store but instead on fs, provider or the result of createPath, to test the delegation as well.
@@ -135,7 +196,9 @@ class MemoryFileStoreTest {
 
     @Test
     void testToRealPathNotExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").toRealPath());
+        MemoryPath path = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, path::toRealPath);
         assertEquals("/foo", exception.getFile());
     }
 
@@ -143,7 +206,9 @@ class MemoryFileStoreTest {
     void testToRealPathBrokenLink() {
         root.add("foo", new Link("bar"));
 
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").toRealPath());
+        MemoryPath path = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, path::toRealPath);
         assertEquals("/bar", exception.getFile());
     }
 
@@ -152,7 +217,9 @@ class MemoryFileStoreTest {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> createPath("/foo").toRealPath());
+        MemoryPath path = createPath("/foo");
+
+        FileSystemException exception = assertThrows(FileSystemException.class, path::toRealPath);
         assertEquals("/foo", exception.getFile());
         assertEquals(MemoryMessages.maximumLinkDepthExceeded(), exception.getReason());
     }
@@ -184,7 +251,9 @@ class MemoryFileStoreTest {
 
     @Test
     void testNewInputStreamNonExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newInputStream(createPath("/foo/bar")));
+        MemoryPath path = createPath("/foo/bar");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newInputStream(path));
         assertEquals("/foo/bar", exception.getFile());
         assertTrue(root.isEmpty());
     }
@@ -193,7 +262,9 @@ class MemoryFileStoreTest {
     void testNewInputStreamDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newInputStream(createPath("/foo")));
+        MemoryPath path = createPath("/foo");
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newInputStream(path));
         assertEquals("/foo", exception.getFile());
         assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
 
@@ -220,7 +291,9 @@ class MemoryFileStoreTest {
     void testNewInputStreamWithBrokenLink() {
         root.add("foo", new Link("bar"));
 
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newInputStream(createPath("/foo")));
+        MemoryPath path = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newInputStream(path));
         assertEquals("/bar", exception.getFile());
     }
 
@@ -229,7 +302,9 @@ class MemoryFileStoreTest {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newInputStream(createPath("/foo")));
+        MemoryPath path = createPath("/foo");
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newInputStream(path));
         assertEquals("/foo", exception.getFile());
         assertEquals(MemoryMessages.maximumLinkDepthExceeded(), exception.getReason());
     }
@@ -299,9 +374,10 @@ class MemoryFileStoreTest {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
+        MemoryPath path = createPath("/foo/bar");
         OpenOption[] options = { StandardOpenOption.CREATE_NEW };
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.newOutputStream(createPath("/foo/bar"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newOutputStream(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -313,9 +389,10 @@ class MemoryFileStoreTest {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
+        MemoryPath path = createPath("/foo/bar");
         OpenOption[] options = { StandardOpenOption.CREATE_NEW, StandardOpenOption.DELETE_ON_CLOSE };
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.newOutputStream(createPath("/foo/bar"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newOutputStream(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -329,8 +406,10 @@ class MemoryFileStoreTest {
 
         bar.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         OpenOption[] options = { StandardOpenOption.WRITE };
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newOutputStream(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newOutputStream(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -344,8 +423,10 @@ class MemoryFileStoreTest {
 
         bar.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newOutputStream(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newOutputStream(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -356,8 +437,10 @@ class MemoryFileStoreTest {
     void testNewOutputStreamNonExistingNoCreate() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo/bar");
         OpenOption[] options = { StandardOpenOption.WRITE };
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(path, options));
         assertEquals("/foo/bar", exception.getMessage());
 
         assertSame(foo, root.get("foo"));
@@ -433,9 +516,10 @@ class MemoryFileStoreTest {
 
     @Test
     void testNewOutputStreamNonExistingCreateNonExistingParent() {
-
+        MemoryPath path = createPath("/foo/bar");
         OpenOption[] options = { StandardOpenOption.CREATE };
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(path, options));
         assertEquals("/foo", exception.getMessage());
 
         assertTrue(root.isEmpty());
@@ -443,9 +527,10 @@ class MemoryFileStoreTest {
 
     @Test
     void testNewOutputStreamNonExistingCreateNewNonExistingParent() {
-
         OpenOption[] options = { StandardOpenOption.CREATE_NEW };
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(createPath("/foo/bar"), options));
+        MemoryPath path = createPath("/foo/bar");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -457,8 +542,10 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         OpenOption[] options = { StandardOpenOption.CREATE };
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newOutputStream(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newOutputStream(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -471,8 +558,10 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         OpenOption[] options = { StandardOpenOption.CREATE_NEW };
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newOutputStream(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newOutputStream(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -483,8 +572,10 @@ class MemoryFileStoreTest {
     void testNewOutputStreamDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo");
         OpenOption[] options = { StandardOpenOption.WRITE };
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath("/foo"), options));
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(path, options));
         assertEquals("/foo", exception.getFile());
         assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
 
@@ -496,8 +587,10 @@ class MemoryFileStoreTest {
     void testNewOutputStreamDirectoryDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo");
         OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath("/foo"), options));
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(path, options));
         assertEquals("/foo", exception.getFile());
         assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
 
@@ -534,7 +627,9 @@ class MemoryFileStoreTest {
     void testNewOutputStreamBrokenWithLinkToNonExistingFolder() {
         root.add("foo", new Link("bar/baz"));
 
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(createPath("/foo")));
+        MemoryPath path = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(path));
         assertEquals("/bar", exception.getFile());
     }
 
@@ -543,7 +638,9 @@ class MemoryFileStoreTest {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath("/foo")));
+        MemoryPath path = createPath("/foo");
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(path));
         assertEquals("/foo", exception.getFile());
         assertEquals(MemoryMessages.maximumLinkDepthExceeded(), exception.getReason());
     }
@@ -669,9 +766,10 @@ class MemoryFileStoreTest {
 
     @Test
     void testNewByteChannelReadNonExisting() {
-
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -679,9 +777,10 @@ class MemoryFileStoreTest {
 
     @Test
     void testNewByteChannelReadNonExistingWithTruncate() {
-
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.TRUNCATE_EXISTING);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -689,9 +788,10 @@ class MemoryFileStoreTest {
 
     @Test
     void testNewByteChannelReadNonExistingWithCreate() {
-
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -699,9 +799,10 @@ class MemoryFileStoreTest {
 
     @Test
     void testNewByteChannelReadNonExistingWithCreateNew() {
-
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -711,8 +812,10 @@ class MemoryFileStoreTest {
     void testNewByteChannelReadDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo");
         Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(createPath("/foo"), options));
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
         assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
 
@@ -740,8 +843,10 @@ class MemoryFileStoreTest {
     void testNewByteChannelReadWithBrokenLink() {
         root.add("foo", new Link("bar"));
 
+        MemoryPath path = createPath("/foo");
         Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
     }
 
@@ -750,8 +855,10 @@ class MemoryFileStoreTest {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
+        MemoryPath path = createPath("/foo");
         Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(createPath("/foo"), options));
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
         assertEquals(MemoryMessages.maximumLinkDepthExceeded(), exception.getReason());
     }
@@ -819,9 +926,10 @@ class MemoryFileStoreTest {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -833,9 +941,10 @@ class MemoryFileStoreTest {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW, StandardOpenOption.DELETE_ON_CLOSE);
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -849,8 +958,10 @@ class MemoryFileStoreTest {
 
         bar.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -864,8 +975,10 @@ class MemoryFileStoreTest {
 
         bar.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -876,8 +989,10 @@ class MemoryFileStoreTest {
     void testNewByteChannelWriteNonExistingNoCreate() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1007,8 +1122,8 @@ class MemoryFileStoreTest {
                 new SimpleFileAttribute<>("something:else", "foo"),
         };
 
-        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
         MemoryPath path = createPath("/foo/bar");
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
@@ -1044,9 +1159,10 @@ class MemoryFileStoreTest {
 
     @Test
     void testNewByteChannelWriteNonExistingCreateNonExistingParent() {
-
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -1054,9 +1170,10 @@ class MemoryFileStoreTest {
 
     @Test
     void testNewByteChannelWriteNonExistingCreateNewNonExistingParent() {
-
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -1068,8 +1185,10 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1082,8 +1201,10 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1094,10 +1215,11 @@ class MemoryFileStoreTest {
     void testNewByteChannelWriteNonExistingCreateReadAttribute() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
         FileAttribute<Boolean> readOnly = new SimpleFileAttribute<>("memory:readOnly", true);
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                () -> provider.newByteChannel(createPath("/foo/bar"), options, readOnly));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(path, options, readOnly));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1108,10 +1230,11 @@ class MemoryFileStoreTest {
     void testNewByteChannelWriteNonExistingCreateNewReadOnlyAttribute() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
         FileAttribute<Boolean> readOnly = new SimpleFileAttribute<>("memory:readOnly", true);
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                () -> provider.newByteChannel(createPath("/foo/bar"), options, readOnly));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(path, options, readOnly));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1122,8 +1245,10 @@ class MemoryFileStoreTest {
     void testNewByteChannelWriteDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(createPath("/foo"), options));
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
         assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
 
@@ -1135,8 +1260,10 @@ class MemoryFileStoreTest {
     void testNewByteChannelWriteDirectoryDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(createPath("/foo"), options));
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
         assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
 
@@ -1175,8 +1302,10 @@ class MemoryFileStoreTest {
     void testNewByteChannelWriteBrokenWithLinkToNonExistingFolder() {
         root.add("foo", new Link("bar/baz"));
 
+        MemoryPath path = createPath("/foo");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/bar", exception.getFile());
     }
 
@@ -1185,8 +1314,10 @@ class MemoryFileStoreTest {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
+        MemoryPath path = createPath("/foo");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(createPath("/foo"), options));
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
         assertEquals(MemoryMessages.maximumLinkDepthExceeded(), exception.getReason());
     }
@@ -1255,9 +1386,10 @@ class MemoryFileStoreTest {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1269,10 +1401,11 @@ class MemoryFileStoreTest {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW,
                 StandardOpenOption.DELETE_ON_CLOSE);
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1286,8 +1419,10 @@ class MemoryFileStoreTest {
 
         bar.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE);
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1301,8 +1436,10 @@ class MemoryFileStoreTest {
 
         bar.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1313,8 +1450,10 @@ class MemoryFileStoreTest {
     void testNewByteChannelReadWriteNonExistingNoCreate() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1484,8 +1623,10 @@ class MemoryFileStoreTest {
     @Test
     void testNewByteChannelReadWriteNonExistingCreateNonExistingParent() {
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -1493,9 +1634,10 @@ class MemoryFileStoreTest {
 
     @Test
     void testNewByteChannelReadWriteNonExistingCreateNewNonExistingParent() {
-
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -1507,8 +1649,10 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1521,8 +1665,10 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
+        MemoryPath path = createPath("/foo/bar");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1533,8 +1679,10 @@ class MemoryFileStoreTest {
     void testNewByteChannelReadWriteDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE);
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(createPath("/foo"), options));
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
         assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
 
@@ -1546,8 +1694,10 @@ class MemoryFileStoreTest {
     void testNewByteChannelReadWriteDirectoryDeleteOnClose() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
+        MemoryPath path = createPath("/foo");
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(createPath("/foo"), options));
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newByteChannel(path, options));
         assertEquals("/foo", exception.getFile());
         assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
 
@@ -1568,8 +1718,9 @@ class MemoryFileStoreTest {
 
     @Test
     void testNewDirectoryStreamNotExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.newDirectoryStream(createPath("/foo"), entry -> true));
+        MemoryPath path = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newDirectoryStream(path, entry -> true));
         assertEquals("/foo", exception.getFile());
     }
 
@@ -1577,8 +1728,9 @@ class MemoryFileStoreTest {
     void testNewDirectoryStreamNotDirectory() {
         root.add("foo", new File());
 
-        NotDirectoryException exception = assertThrows(NotDirectoryException.class,
-                () -> provider.newDirectoryStream(createPath("/foo"), entry -> true));
+        MemoryPath path = createPath("/foo");
+
+        NotDirectoryException exception = assertThrows(NotDirectoryException.class, () -> provider.newDirectoryStream(path, entry -> true));
         assertEquals("/foo", exception.getFile());
     }
 
@@ -1605,8 +1757,9 @@ class MemoryFileStoreTest {
     void testNewDirectoryStreamWithBrokenLink() {
         root.add("foo", new Link("bar"));
 
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.newDirectoryStream(createPath("/foo"), entry -> true));
+        MemoryPath path = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newDirectoryStream(path, entry -> true));
         assertEquals("/bar", exception.getFile());
     }
 
@@ -1615,8 +1768,9 @@ class MemoryFileStoreTest {
         root.add("foo", new Link("bar"));
         root.add("bar", new Link("foo"));
 
-        FileSystemException exception = assertThrows(FileSystemException.class,
-                () -> provider.newDirectoryStream(createPath("/foo"), entry -> true));
+        MemoryPath path = createPath("/foo");
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newDirectoryStream(path, entry -> true));
         assertEquals("/foo", exception.getFile());
         assertEquals(MemoryMessages.maximumLinkDepthExceeded(), exception.getReason());
     }
@@ -1650,7 +1804,9 @@ class MemoryFileStoreTest {
 
     @Test
     void testCreateRoot() {
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createDirectory(createPath("/")));
+        MemoryPath path = createPath("/");
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createDirectory(path));
         assertEquals("/", exception.getFile());
     }
 
@@ -1702,7 +1858,9 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.createDirectory(createPath("/foo/bar")));
+        MemoryPath path = createPath("/foo/bar");
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.createDirectory(path));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1711,7 +1869,9 @@ class MemoryFileStoreTest {
 
     @Test
     void testCreateDirectoryNonExistingParent() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.createDirectory(createPath("/foo/bar")));
+        MemoryPath path = createPath("/foo/bar");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.createDirectory(path));
         assertEquals("/foo", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -1726,7 +1886,9 @@ class MemoryFileStoreTest {
         // d /foo
         // f /foo/bar
 
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createDirectory(createPath("/foo/bar")));
+        MemoryPath path = createPath("/foo/bar");
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createDirectory(path));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1782,8 +1944,10 @@ class MemoryFileStoreTest {
         Directory foo = (Directory) root.add("foo", new Directory());
         File bar = (File) foo.add("bar", new File());
 
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.createSymbolicLink(createPath("/foo/bar"), createPath("/bar")));
+        MemoryPath link = createPath("/foo/bar");
+        MemoryPath target = createPath("/bar");
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createSymbolicLink(link, target));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1844,9 +2008,10 @@ class MemoryFileStoreTest {
 
     @Test
     void testCreateSymbolicLinkNonExistingParent() {
+        MemoryPath link = createPath("/foo/link");
+        MemoryPath target = createPath("/bar");
 
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.createSymbolicLink(createPath("/foo/link"), createPath("/bar")));
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.createSymbolicLink(link, target));
         assertEquals("/foo", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -1858,8 +2023,10 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                () -> provider.createSymbolicLink(createPath("/foo/link"), createPath("/bar")));
+        MemoryPath link = createPath("/foo/link");
+        MemoryPath target = createPath("/bar");
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.createSymbolicLink(link, target));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1882,7 +2049,10 @@ class MemoryFileStoreTest {
     void testCreateLinkToDirectory() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.createLink(createPath("/bar"), createPath("foo")));
+        MemoryPath link = createPath("/bar");
+        MemoryPath existing = createPath("foo");
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.createLink(link, existing));
         assertEquals("/foo", exception.getFile());
         assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
 
@@ -1894,7 +2064,10 @@ class MemoryFileStoreTest {
     void testCreateLinkToEmpty() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
-        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.createLink(createPath("/bar"), createPath("")));
+        MemoryPath link = createPath("/bar");
+        MemoryPath existing = createPath("");
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.createLink(link, existing));
         assertEquals("/", exception.getFile());
         assertEquals(Messages.fileSystemProvider().isDirectory("/").getReason(), exception.getReason());
 
@@ -1915,8 +2088,10 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                () -> provider.createLink(createPath("/foo/bar"), createPath("/baz")));
+        MemoryPath link = createPath("/foo/bar");
+        MemoryPath existing = createPath("/baz");
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.createLink(link, existing));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1927,8 +2102,10 @@ class MemoryFileStoreTest {
     void testCreateLinkNonExistingParent() {
         root.add("baz", new File());
 
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.createLink(createPath("/foo/bar"), createPath("/baz")));
+        MemoryPath link = createPath("/foo/bar");
+        MemoryPath existing = createPath("/baz");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.createLink(link, existing));
         assertEquals("/foo", exception.getFile());
 
         assertNull(root.get("foo"));
@@ -1939,8 +2116,10 @@ class MemoryFileStoreTest {
         File foo = (File) root.add("foo", new File());
         Node bar = root.add("bar", new Directory());
 
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.createLink(createPath("/foo"), createPath("/bar")));
+        MemoryPath link = createPath("/foo");
+        MemoryPath existing = createPath("/bar");
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createLink(link, existing));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -1949,8 +2128,10 @@ class MemoryFileStoreTest {
 
     @Test
     void testCreateLinkMissingExisting() {
+        MemoryPath link = createPath("/foo");
+        MemoryPath existing = createPath("/bar");
 
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.createLink(createPath("/foo"), createPath("/bar")));
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.createLink(link, existing));
         assertEquals("/bar", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -1960,13 +2141,17 @@ class MemoryFileStoreTest {
 
     @Test
     void testDeleteNonExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.delete(createPath("/foo")));
+        MemoryPath path = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.delete(path));
         assertEquals("/foo", exception.getFile());
     }
 
     @Test
     void testDeleteRoot() {
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.delete(createPath("/")));
+        MemoryPath path = createPath("/");
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.delete(path));
         assertEquals("/", exception.getFile());
     }
 
@@ -2011,7 +2196,9 @@ class MemoryFileStoreTest {
         // d /foo/bar
         // d /foo/bar/baz
 
-        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.delete(createPath("/foo/bar")));
+        MemoryPath path = createPath("/foo/bar");
+
+        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.delete(path));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2051,7 +2238,9 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.delete(createPath("/foo/bar")));
+        MemoryPath path = createPath("/foo/bar");
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.delete(path));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2067,7 +2256,9 @@ class MemoryFileStoreTest {
 
     @Test
     void testDeleteIfExistsRoot() {
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.deleteIfExists(createPath("/")));
+        MemoryPath path = createPath("/");
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.deleteIfExists(path));
         assertEquals("/", exception.getFile());
     }
 
@@ -2112,7 +2303,9 @@ class MemoryFileStoreTest {
         // d /foo/bar
         // d /foo/bar/baz
 
-        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.deleteIfExists(createPath("/foo/bar")));
+        MemoryPath path = createPath("/foo/bar");
+
+        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.deleteIfExists(path));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2152,7 +2345,9 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.deleteIfExists(createPath("/foo/bar")));
+        MemoryPath path = createPath("/foo/bar");
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.deleteIfExists(path));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2176,7 +2371,9 @@ class MemoryFileStoreTest {
         foo.add("bar", new File());
         foo.add("link", new Link("bar"));
 
-        NotLinkException exception = assertThrows(NotLinkException.class, () -> provider.readSymbolicLink(createPath("/foo/bar")));
+        MemoryPath path = createPath("/foo/bar");
+
+        NotLinkException exception = assertThrows(NotLinkException.class, () -> provider.readSymbolicLink(path));
         assertEquals("/foo/bar", exception.getFile());
     }
 
@@ -2186,7 +2383,9 @@ class MemoryFileStoreTest {
         foo.add("bar", new File());
         foo.add("link", new Link("bar"));
 
-        NotLinkException exception = assertThrows(NotLinkException.class, () -> provider.readSymbolicLink(createPath("/foo")));
+        MemoryPath path = createPath("/foo");
+
+        NotLinkException exception = assertThrows(NotLinkException.class, () -> provider.readSymbolicLink(path));
         assertEquals("/foo", exception.getFile());
     }
 
@@ -2222,9 +2421,11 @@ class MemoryFileStoreTest {
         // content:
         // d /foo
 
+        MemoryPath source = createPath("/foo/bar");
+        MemoryPath target = createPath("/foo/baz");
         CopyOption[] options = {};
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.copy(createPath("/foo/bar"), createPath("/foo/baz"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.copy(source, target, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2240,9 +2441,11 @@ class MemoryFileStoreTest {
         // d /foo
         // f /foo/bar
 
+        MemoryPath source = createPath("/foo/bar");
+        MemoryPath target = createPath("/baz/bar");
         CopyOption[] options = {};
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.copy(createPath("/foo/bar"), createPath("/baz/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.copy(source, target, options));
         assertEquals("/baz", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2284,9 +2487,11 @@ class MemoryFileStoreTest {
         // d /foo/bar
         // f /baz
 
+        MemoryPath source = createPath("/baz");
+        MemoryPath target = createPath("/foo/bar");
         CopyOption[] options = {};
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.copy(createPath("/baz"), createPath("/foo/bar"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2325,9 +2530,11 @@ class MemoryFileStoreTest {
         // f /foo/bar
         // f /baz
 
+        MemoryPath source = createPath("/baz");
+        MemoryPath target = createPath("/foo");
         CopyOption[] options = {};
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.copy(createPath("/baz"), createPath("/foo"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2346,9 +2553,11 @@ class MemoryFileStoreTest {
         // f /foo/bar
         // f /baz
 
+        MemoryPath source = createPath("/baz");
+        MemoryPath target = createPath("/foo");
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class,
-                () -> provider.copy(createPath("/baz"), createPath("/foo"), options));
+
+        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.copy(source, target, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2365,9 +2574,11 @@ class MemoryFileStoreTest {
         // d /foo
         // f /baz
 
+        MemoryPath source = createPath("/baz");
+        MemoryPath target = createPath("/foo");
         CopyOption[] options = {};
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.copy(createPath("/baz"), createPath("/foo"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2555,9 +2766,11 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
+        MemoryPath source = createPath("/baz");
+        MemoryPath target = createPath("/foo/bar");
         CopyOption[] options = {};
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                () -> provider.copy(createPath("/baz"), createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.copy(source, target, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2693,9 +2906,11 @@ class MemoryFileStoreTest {
         // l /link1 -> /link2
         // l /link2 -> /link1
 
+        MemoryPath source = createPath("/link2");
+        MemoryPath target = createPath("/foo/bar");
         CopyOption[] options = { LinkOption.NOFOLLOW_LINKS };
-        FileSystemException exception = assertThrows(FileSystemException.class,
-                () -> provider.copy(createPath("/link2"), createPath("/foo/bar"), options));
+
+        FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.copy(source, target, options));
         assertEquals("/link2", exception.getFile());
         assertEquals(MemoryMessages.maximumLinkDepthExceeded(), exception.getReason());
     }
@@ -2728,9 +2943,11 @@ class MemoryFileStoreTest {
         // content:
         // d /foo
 
+        MemoryPath source = createPath("/foo/bar");
+        MemoryPath target = createPath("/foo/baz");
         CopyOption[] options = {};
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.move(createPath("/foo/bar"), createPath("/foo/baz"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.move(source, target, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2746,9 +2963,11 @@ class MemoryFileStoreTest {
         // d /foo
         // f /foo/bar
 
+        MemoryPath source = createPath("/foo/bar");
+        MemoryPath target = createPath("/baz/bar");
         CopyOption[] options = {};
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.move(createPath("/foo/bar"), createPath("/baz/bar"), options));
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.move(source, target, options));
         assertEquals("/baz", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2758,10 +2977,11 @@ class MemoryFileStoreTest {
 
     @Test
     void testMoveEmptyRoot() {
-
+        MemoryPath source = createPath("/");
+        MemoryPath target = createPath("/baz");
         CopyOption[] options = {};
-        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class,
-                () -> provider.move(createPath("/"), createPath("/baz"), options));
+
+        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.move(source, target, options));
         assertEquals("/", exception.getFile());
 
         assertTrue(root.isEmpty());
@@ -2774,9 +2994,11 @@ class MemoryFileStoreTest {
         // cotent:
         // d /foo
 
+        MemoryPath source = createPath("/");
+        MemoryPath target = createPath("/baz");
         CopyOption[] options = {};
-        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class,
-                () -> provider.move(createPath("/"), createPath("/baz"), options));
+
+        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.move(source, target, options));
         assertEquals("/", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2794,9 +3016,11 @@ class MemoryFileStoreTest {
         // d /foo/bar
         // f /baz
 
+        MemoryPath source = createPath("/baz");
+        MemoryPath target = createPath("/foo/bar");
         CopyOption[] options = {};
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.move(createPath("/baz"), createPath("/foo/bar"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.move(source, target, options));
         assertEquals("/foo/bar", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2834,9 +3058,11 @@ class MemoryFileStoreTest {
         // f /foo/bar
         // f /baz
 
+        MemoryPath source = createPath("/baz");
+        MemoryPath target = createPath("/foo");
         CopyOption[] options = {};
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.move(createPath("/baz"), createPath("/foo"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.move(source, target, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2855,9 +3081,11 @@ class MemoryFileStoreTest {
         // f /foo/bar
         // f /baz
 
+        MemoryPath source = createPath("/baz");
+        MemoryPath target = createPath("/foo");
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class,
-                () -> provider.move(createPath("/baz"), createPath("/foo"), options));
+
+        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.move(source, target, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2874,9 +3102,11 @@ class MemoryFileStoreTest {
         // d /foo
         // f /baz
 
+        MemoryPath source = createPath("/baz");
+        MemoryPath target = createPath("/foo");
         CopyOption[] options = {};
-        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                () -> provider.move(createPath("/baz"), createPath("/foo"), options));
+
+        FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.move(source, target, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -2982,9 +3212,11 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
+        MemoryPath source = createPath("/foo/bar");
+        MemoryPath target = createPath("/baz");
         CopyOption[] options = {};
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                () -> provider.move(createPath("/foo/bar"), createPath("/baz"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.move(source, target, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -3003,9 +3235,11 @@ class MemoryFileStoreTest {
 
         foo.setReadOnly(true);
 
+        MemoryPath source = createPath("/baz");
+        MemoryPath target = createPath("/foo/bar");
         CopyOption[] options = {};
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                () -> provider.move(createPath("/baz"), createPath("/foo/bar"), options));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.move(source, target, options));
         assertEquals("/foo", exception.getFile());
 
         assertSame(foo, root.get("foo"));
@@ -3077,13 +3311,19 @@ class MemoryFileStoreTest {
 
     @Test
     void testIsSameFileFirstNonExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(createPath("/foo"), createPath("/")));
+        MemoryPath path = createPath("/foo");
+        MemoryPath path2 = createPath("/");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(path, path2));
         assertEquals("/foo", exception.getFile());
     }
 
     @Test
     void testIsSameFileSecondNonExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(createPath("/"), createPath("/foo")));
+        MemoryPath path = createPath("/");
+        MemoryPath path2 = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(path, path2));
         assertEquals("/foo", exception.getFile());
     }
 
@@ -3102,7 +3342,9 @@ class MemoryFileStoreTest {
 
     @Test
     void testIsHiddenNonExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isHidden(createPath("/foo")));
+        MemoryPath path = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isHidden(path));
         assertEquals("/foo", exception.getFile());
     }
 
@@ -3115,7 +3357,9 @@ class MemoryFileStoreTest {
 
     @Test
     void testGetFileStoreNonExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.getFileStore(createPath("/foo/bar")));
+        MemoryPath path = createPath("/foo/bar");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.getFileStore(path));
         assertEquals("/foo/bar", exception.getFile());
     }
 
@@ -3123,7 +3367,9 @@ class MemoryFileStoreTest {
 
     @Test
     void testCheckAccessNonExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.checkAccess(createPath("/foo/bar")));
+        MemoryPath path = createPath("/foo/bar");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.checkAccess(path));
         assertEquals("/foo/bar", exception.getFile());
     }
 
@@ -3157,8 +3403,9 @@ class MemoryFileStoreTest {
         Directory bar = (Directory) foo.add("bar", new Directory());
         bar.setReadOnly(true);
 
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                () -> provider.checkAccess(createPath("/foo/bar"), AccessMode.WRITE));
+        MemoryPath path = createPath("/foo/bar");
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.checkAccess(path, AccessMode.WRITE));
         assertEquals("/foo/bar", exception.getFile());
     }
 
@@ -3167,8 +3414,9 @@ class MemoryFileStoreTest {
         Directory foo = (Directory) root.add("foo", new Directory());
         foo.add("bar", new File());
 
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                () -> provider.checkAccess(createPath("/foo/bar"), AccessMode.EXECUTE));
+        MemoryPath path = createPath("/foo/bar");
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.checkAccess(path, AccessMode.EXECUTE));
         assertEquals("/foo/bar", exception.getFile());
     }
 
@@ -3197,8 +3445,9 @@ class MemoryFileStoreTest {
         Link link = (Link) foo.add("link", new Link("baz"));
         link.setReadOnly(true);
 
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.checkAccess(createPath("/foo/link"), AccessMode.WRITE));
+        MemoryPath path = createPath("/foo/link");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.checkAccess(path, AccessMode.WRITE));
         assertEquals("/foo/baz", exception.getFile());
     }
 
@@ -3215,7 +3464,8 @@ class MemoryFileStoreTest {
         FileTime newLastAccess = FileTime.fromMillis(oldLastAccess.toMillis() + 10000);
         FileTime newCreation = FileTime.fromMillis(oldCreation.toMillis() + 15000);
 
-        createPath("/foo").setTimes(newLastModified, newLastAccess, newCreation, true);
+        BasicFileAttributeView view = provider.getFileAttributeView(createPath("/foo"), BasicFileAttributeView.class);
+        view.setTimes(newLastModified, newLastAccess, newCreation);
 
         assertEquals(newLastModified, foo.getLastModifiedTime());
         assertEquals(newLastAccess, foo.getLastAccessTime());
@@ -3231,7 +3481,8 @@ class MemoryFileStoreTest {
 
         FileTime newLastModified = FileTime.fromMillis(oldLastModified.toMillis() + 5000);
 
-        createPath("/foo").setTimes(newLastModified, null, null, true);
+        BasicFileAttributeView view = provider.getFileAttributeView(createPath("/foo"), BasicFileAttributeView.class);
+        view.setTimes(newLastModified, null, null);
 
         assertEquals(newLastModified, foo.getLastModifiedTime());
         assertEquals(oldLastAccess, foo.getLastAccessTime());
@@ -3247,7 +3498,8 @@ class MemoryFileStoreTest {
 
         FileTime newLastAccess = FileTime.fromMillis(oldLastAccess.toMillis() + 5000);
 
-        createPath("/foo").setTimes(null, newLastAccess, null, true);
+        BasicFileAttributeView view = provider.getFileAttributeView(createPath("/foo"), BasicFileAttributeView.class);
+        view.setTimes(null, newLastAccess, null);
 
         assertEquals(oldLastModified, foo.getLastModifiedTime());
         assertEquals(newLastAccess, foo.getLastAccessTime());
@@ -3263,7 +3515,8 @@ class MemoryFileStoreTest {
 
         FileTime newCreation = FileTime.fromMillis(oldCreation.toMillis() + 5000);
 
-        createPath("/foo").setTimes(null, null, newCreation, true);
+        BasicFileAttributeView view = provider.getFileAttributeView(createPath("/foo"), BasicFileAttributeView.class);
+        view.setTimes(null, null, newCreation);
 
         assertEquals(oldLastModified, foo.getLastModifiedTime());
         assertEquals(oldLastAccess, foo.getLastAccessTime());
@@ -3278,16 +3531,20 @@ class MemoryFileStoreTest {
 
         assertFalse(foo.isReadOnly());
 
-        createPath("/foo").setReadOnly(true, true);
+        MemoryFileAttributeView view = provider.getFileAttributeView(createPath("/foo"), MemoryFileAttributeView.class);
+
+        view.setReadOnly(true);
         assertTrue(foo.isReadOnly());
 
-        createPath("/foo").setReadOnly(false, true);
+        view.setReadOnly(false);
         assertFalse(foo.isReadOnly());
     }
 
     @Test
     void testSetReadOnlyNonExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").setReadOnly(true, true));
+        MemoryFileAttributeView view = provider.getFileAttributeView(createPath("/foo"), MemoryFileAttributeView.class);
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> view.setReadOnly(true));
         assertEquals("/foo", exception.getFile());
     }
 
@@ -3299,16 +3556,20 @@ class MemoryFileStoreTest {
 
         assertFalse(foo.isHidden());
 
-        createPath("/foo").setHidden(true, true);
+        MemoryFileAttributeView view = provider.getFileAttributeView(createPath("/foo"), MemoryFileAttributeView.class);
+
+        view.setHidden(true);
         assertTrue(foo.isHidden());
 
-        createPath("/foo").setHidden(false, true);
+        view.setHidden(false);
         assertFalse(foo.isHidden());
     }
 
     @Test
     void testSetHiddenNonExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").setHidden(true, true));
+        MemoryFileAttributeView view = provider.getFileAttributeView(createPath("/foo"), MemoryFileAttributeView.class);
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> view.setHidden(true));
         assertEquals("/foo", exception.getFile());
     }
 
@@ -3362,7 +3623,9 @@ class MemoryFileStoreTest {
 
     @Test
     void testReadAttributesNonExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").readAttributes(true));
+        MemoryPath path = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.readAttributes(path, MemoryFileAttributes.class));
         assertEquals("/foo", exception.getFile());
     }
 
@@ -3420,136 +3683,102 @@ class MemoryFileStoreTest {
         foo.setReadOnly(true);
         foo.setHidden(true);
 
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").readAttributes(true));
+        MemoryPath path = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.readAttributes(path, MemoryFileAttributes.class));
         assertEquals("/bar", exception.getFile());
     }
 
     // MemoryFileStore.readAttributes (map variant)
 
-    @ParameterizedTest(name = "{0} -> {1}")
-    @CsvSource({
-            "lastModifiedTime, basic:lastModifiedTime",
-            "basic:lastModifiedTime, basic:lastModifiedTime",
-            "memory:lastModifiedTime, memory:lastModifiedTime"
-    })
-    void testReadAttributesMapLastModifiedTime(String attributeName, String expectedKey) throws IOException {
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "lastModifiedTime", "basic:lastModifiedTime", "memory:lastModifiedTime" })
+    void testReadAttributesMapLastModifiedTime(String attributeName) throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), attributeName);
-        Map<String, ?> expected = Collections.singletonMap(expectedKey, foo.getLastModifiedTime());
+        Map<String, ?> expected = Collections.singletonMap("lastModifiedTime", foo.getLastModifiedTime());
         assertEquals(expected, attributes);
     }
 
-    @ParameterizedTest(name = "{0} -> {1}")
-    @CsvSource({
-            "lastAccessTime, basic:lastAccessTime",
-            "basic:lastAccessTime, basic:lastAccessTime",
-            "memory:lastAccessTime, memory:lastAccessTime"
-    })
-    void testReadAttributesMapLastAccessTime(String attributeName, String expectedKey) throws IOException {
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "lastAccessTime", "basic:lastAccessTime", "memory:lastAccessTime" })
+    void testReadAttributesMapLastAccessTime(String attributeName) throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), attributeName);
-        Map<String, ?> expected = Collections.singletonMap(expectedKey, foo.getLastAccessTime());
+        Map<String, ?> expected = Collections.singletonMap("lastAccessTime", foo.getLastAccessTime());
         assertEquals(expected, attributes);
     }
 
-    @ParameterizedTest(name = "{0} -> {1}")
-    @CsvSource({
-            "creationTime, basic:creationTime",
-            "basic:creationTime, basic:creationTime",
-            "memory:creationTime, memory:creationTime"
-    })
-    void testReadAttributesMapCreateTime(String attributeName, String expectedKey) throws IOException {
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "creationTime", "basic:creationTime", "memory:creationTime" })
+    void testReadAttributesMapCreateTime(String attributeName) throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), attributeName);
-        Map<String, ?> expected = Collections.singletonMap(expectedKey, foo.getCreationTime());
+        Map<String, ?> expected = Collections.singletonMap("creationTime", foo.getCreationTime());
         assertEquals(expected, attributes);
     }
 
-    @ParameterizedTest(name = "{0} -> {1}")
-    @CsvSource({
-            "size, basic:size",
-            "basic:size, basic:size",
-            "memory:size, memory:size"
-    })
-    void testReadAttributesMapSize(String attributeName, String expectedKey) throws IOException {
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "size", "basic:size", "memory:size" })
+    void testReadAttributesMapSize(String attributeName) throws IOException {
         File foo = (File) root.add("foo", new File());
         foo.setContent(new byte[1024]);
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), attributeName);
-        Map<String, ?> expected = Collections.singletonMap(expectedKey, foo.getSize());
+        Map<String, ?> expected = Collections.singletonMap("size", foo.getSize());
         assertEquals(expected, attributes);
     }
 
-    @ParameterizedTest(name = "{0} -> {1}")
-    @CsvSource({
-            "isRegularFile, basic:isRegularFile",
-            "basic:isRegularFile, basic:isRegularFile",
-            "memory:isRegularFile, memory:isRegularFile"
-    })
-    void testReadAttributesMapIsRegularFile(String attributeName, String expectedKey) throws IOException {
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "isRegularFile", "basic:isRegularFile", "memory:isRegularFile" })
+    void testReadAttributesMapIsRegularFile(String attributeName) throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), attributeName);
-        Map<String, ?> expected = Collections.singletonMap(expectedKey, foo.isRegularFile());
+        Map<String, ?> expected = Collections.singletonMap("isRegularFile", foo.isRegularFile());
         assertEquals(expected, attributes);
     }
 
-    @ParameterizedTest(name = "{0} -> {1}")
-    @CsvSource({
-            "isDirectory, basic:isDirectory",
-            "basic:isDirectory, basic:isDirectory",
-            "memory:isDirectory, memory:isDirectory"
-    })
-    void testReadAttributesMapIsDirectory(String attributeName, String expectedKey) throws IOException {
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "isDirectory", "basic:isDirectory", "memory:isDirectory" })
+    void testReadAttributesMapIsDirectory(String attributeName) throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), attributeName);
-        Map<String, ?> expected = Collections.singletonMap(expectedKey, foo.isDirectory());
+        Map<String, ?> expected = Collections.singletonMap("isDirectory", foo.isDirectory());
         assertEquals(expected, attributes);
     }
 
-    @ParameterizedTest(name = "{0} -> {1}")
-    @CsvSource({
-            "isSymbolicLink, basic:isSymbolicLink",
-            "basic:isSymbolicLink, basic:isSymbolicLink",
-            "memory:isSymbolicLink, memory:isSymbolicLink"
-    })
-    void testReadAttributesMapIsSymbolicLink(String attributeName, String expectedKey) throws IOException {
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "isSymbolicLink", "basic:isSymbolicLink", "memory:isSymbolicLink" })
+    void testReadAttributesMapIsSymbolicLink(String attributeName) throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), attributeName);
-        Map<String, ?> expected = Collections.singletonMap(expectedKey, false);
+        Map<String, ?> expected = Collections.singletonMap("isSymbolicLink", false);
         assertEquals(expected, attributes);
     }
 
-    @ParameterizedTest(name = "{0} -> {1}")
-    @CsvSource({
-            "isOther, basic:isOther",
-            "basic:isOther, basic:isOther",
-            "memory:isOther, memory:isOther"
-    })
-    void testReadAttributesMapIsOther(String attributeName, String expectedKey) throws IOException {
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "isOther", "basic:isOther", "memory:isOther" })
+    void testReadAttributesMapIsOther(String attributeName) throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), attributeName);
-        Map<String, ?> expected = Collections.singletonMap(expectedKey, false);
+        Map<String, ?> expected = Collections.singletonMap("isOther", false);
         assertEquals(expected, attributes);
     }
 
-    @ParameterizedTest(name = "{0} -> {1}")
-    @CsvSource({
-            "fileKey, basic:fileKey",
-            "basic:fileKey, basic:fileKey",
-            "memory:fileKey, memory:fileKey"
-    })
-    void testReadAttributesMapFileKey(String attributeName, String expectedKey) throws IOException {
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "fileKey", "basic:fileKey", "memory:fileKey" })
+    void testReadAttributesMapFileKey(String attributeName) throws IOException {
         root.add("foo", new Directory());
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), attributeName);
-        Map<String, ?> expected = Collections.singletonMap(expectedKey, null);
+        Map<String, ?> expected = Collections.singletonMap("fileKey", null);
         assertEquals(expected, attributes);
     }
 
@@ -3559,9 +3788,9 @@ class MemoryFileStoreTest {
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "lastModifiedTime,creationTime,isDirectory");
         Map<String, Object> expected = new HashMap<>();
-        expected.put("basic:lastModifiedTime", foo.getLastModifiedTime());
-        expected.put("basic:creationTime", foo.getCreationTime());
-        expected.put("basic:isDirectory", foo.isDirectory());
+        expected.put("lastModifiedTime", foo.getLastModifiedTime());
+        expected.put("creationTime", foo.getCreationTime());
+        expected.put("isDirectory", foo.isDirectory());
         assertEquals(expected, attributes);
     }
 
@@ -3571,18 +3800,18 @@ class MemoryFileStoreTest {
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "*");
         Map<String, Object> expected = new HashMap<>();
-        expected.put("basic:lastModifiedTime", foo.getLastModifiedTime());
-        expected.put("basic:lastAccessTime", foo.getLastAccessTime());
-        expected.put("basic:creationTime", foo.getCreationTime());
-        expected.put("basic:size", foo.getSize());
-        expected.put("basic:isRegularFile", foo.isRegularFile());
-        expected.put("basic:isDirectory", foo.isDirectory());
-        expected.put("basic:isSymbolicLink", false);
-        expected.put("basic:isOther", false);
-        expected.put("basic:fileKey", null);
+        expected.put("lastModifiedTime", foo.getLastModifiedTime());
+        expected.put("lastAccessTime", foo.getLastAccessTime());
+        expected.put("creationTime", foo.getCreationTime());
+        expected.put("size", foo.getSize());
+        expected.put("isRegularFile", foo.isRegularFile());
+        expected.put("isDirectory", foo.isDirectory());
+        expected.put("isSymbolicLink", false);
+        expected.put("isOther", false);
+        expected.put("fileKey", null);
         assertEquals(expected, attributes);
 
-        attributes = provider.readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
+        attributes = provider.readAttributes(createPath("/foo"), "lastModifiedTime,*");
         assertEquals(expected, attributes);
     }
 
@@ -3592,9 +3821,9 @@ class MemoryFileStoreTest {
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:lastModifiedTime,creationTime,isDirectory");
         Map<String, Object> expected = new HashMap<>();
-        expected.put("basic:lastModifiedTime", foo.getLastModifiedTime());
-        expected.put("basic:creationTime", foo.getCreationTime());
-        expected.put("basic:isDirectory", foo.isDirectory());
+        expected.put("lastModifiedTime", foo.getLastModifiedTime());
+        expected.put("creationTime", foo.getCreationTime());
+        expected.put("isDirectory", foo.isDirectory());
         assertEquals(expected, attributes);
     }
 
@@ -3604,15 +3833,15 @@ class MemoryFileStoreTest {
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "basic:*");
         Map<String, Object> expected = new HashMap<>();
-        expected.put("basic:lastModifiedTime", foo.getLastModifiedTime());
-        expected.put("basic:lastAccessTime", foo.getLastAccessTime());
-        expected.put("basic:creationTime", foo.getCreationTime());
-        expected.put("basic:size", foo.getSize());
-        expected.put("basic:isRegularFile", foo.isRegularFile());
-        expected.put("basic:isDirectory", foo.isDirectory());
-        expected.put("basic:isSymbolicLink", false);
-        expected.put("basic:isOther", false);
-        expected.put("basic:fileKey", null);
+        expected.put("lastModifiedTime", foo.getLastModifiedTime());
+        expected.put("lastAccessTime", foo.getLastAccessTime());
+        expected.put("creationTime", foo.getCreationTime());
+        expected.put("size", foo.getSize());
+        expected.put("isRegularFile", foo.isRegularFile());
+        expected.put("isDirectory", foo.isDirectory());
+        expected.put("isSymbolicLink", false);
+        expected.put("isOther", false);
+        expected.put("fileKey", null);
         assertEquals(expected, attributes);
 
         attributes = provider.readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
@@ -3625,7 +3854,7 @@ class MemoryFileStoreTest {
         foo.setReadOnly(true);
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:readOnly");
-        Map<String, ?> expected = Collections.singletonMap("memory:readOnly", true);
+        Map<String, ?> expected = Collections.singletonMap("readOnly", true);
         assertEquals(expected, attributes);
     }
 
@@ -3635,7 +3864,7 @@ class MemoryFileStoreTest {
         foo.setHidden(true);
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:hidden");
-        Map<String, ?> expected = Collections.singletonMap("memory:hidden", true);
+        Map<String, ?> expected = Collections.singletonMap("hidden", true);
         assertEquals(expected, attributes);
     }
 
@@ -3646,9 +3875,9 @@ class MemoryFileStoreTest {
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:lastModifiedTime,creationTime,readOnly");
         Map<String, Object> expected = new HashMap<>();
-        expected.put("memory:lastModifiedTime", foo.getLastModifiedTime());
-        expected.put("memory:creationTime", foo.getCreationTime());
-        expected.put("memory:readOnly", true);
+        expected.put("lastModifiedTime", foo.getLastModifiedTime());
+        expected.put("creationTime", foo.getCreationTime());
+        expected.put("readOnly", true);
         assertEquals(expected, attributes);
     }
 
@@ -3659,17 +3888,17 @@ class MemoryFileStoreTest {
 
         Map<String, Object> attributes = provider.readAttributes(createPath("/foo"), "memory:*");
         Map<String, Object> expected = new HashMap<>();
-        expected.put("memory:lastModifiedTime", foo.getLastModifiedTime());
-        expected.put("memory:lastAccessTime", foo.getLastAccessTime());
-        expected.put("memory:creationTime", foo.getCreationTime());
-        expected.put("memory:size", foo.getSize());
-        expected.put("memory:isRegularFile", foo.isRegularFile());
-        expected.put("memory:isDirectory", foo.isDirectory());
-        expected.put("memory:isSymbolicLink", false);
-        expected.put("memory:isOther", false);
-        expected.put("memory:fileKey", null);
-        expected.put("memory:readOnly", true);
-        expected.put("memory:hidden", false);
+        expected.put("lastModifiedTime", foo.getLastModifiedTime());
+        expected.put("lastAccessTime", foo.getLastAccessTime());
+        expected.put("creationTime", foo.getCreationTime());
+        expected.put("size", foo.getSize());
+        expected.put("isRegularFile", foo.isRegularFile());
+        expected.put("isDirectory", foo.isDirectory());
+        expected.put("isSymbolicLink", false);
+        expected.put("isOther", false);
+        expected.put("fileKey", null);
+        expected.put("readOnly", true);
+        expected.put("hidden", false);
         assertEquals(expected, attributes);
 
         attributes = provider.readAttributes(createPath("/foo"), "memory:lastModifiedTime,*");
@@ -3754,7 +3983,7 @@ class MemoryFileStoreTest {
     }
 
     @Test
-    void testSetAttributeCreateTime() throws IOException {
+    void testSetAttributeCreationTime() throws IOException {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileTime creationTime = FileTime.fromMillis(123456L);
@@ -3802,11 +4031,11 @@ class MemoryFileStoreTest {
         MemoryPath path = createPath("/foo");
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.setAttribute(path, "memory:dummy", true));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:dummy").getMessage(), exception.getMessage());
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("dummy").getMessage(), exception.getMessage());
     }
 
     @Test
-    void testSetAttributeUnsupportedType() {
+    void testSetAttributeUnsupportedView() {
         root.add("foo", new Directory());
 
         MemoryPath path = createPath("/foo");
@@ -3827,8 +4056,9 @@ class MemoryFileStoreTest {
 
     @Test
     void testSetAttributeNonExisting() {
-        NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                () -> provider.setAttribute(createPath("/foo"), "memory:hidden", true));
+        MemoryPath path = createPath("/foo");
+
+        NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.setAttribute(path, "memory:hidden", true));
         assertEquals("/foo", exception.getFile());
     }
 

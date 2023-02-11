@@ -36,7 +36,7 @@ import java.nio.file.WatchEvent.Modifier;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.FileAttributeView;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -130,7 +130,7 @@ final class MemoryPath extends SimpleAbstractPath {
 
     @Override
     public URI toUri() {
-        return URI.create((isAbsolute() ? "memory:" : "memory:/") + path()); //$NON-NLS-1$ //$NON-NLS-2$
+        return fs.toUri(this);
     }
 
     @Override
@@ -238,20 +238,12 @@ final class MemoryPath extends SimpleAbstractPath {
         fs.checkAccess(this, modes);
     }
 
-    void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime, boolean followLinks) throws IOException {
-        fs.setTimes(this, lastModifiedTime, lastAccessTime, createTime, followLinks);
+    <V extends FileAttributeView> V getFileAttributeView(Class<V> type, boolean followLinks) {
+        return fs.getFileAttributeView(this, type, followLinks);
     }
 
     MemoryFileAttributes readAttributes(boolean followLinks) throws IOException {
         return fs.readAttributes(this, followLinks);
-    }
-
-    void setReadOnly(boolean value, boolean followLinks) throws IOException {
-        fs.setReadOnly(this, value, followLinks);
-    }
-
-    void setHidden(boolean value, boolean followLinks) throws IOException {
-        fs.setHidden(this, value, followLinks);
     }
 
     Map<String, Object> readAttributes(String attributes, boolean followLinks) throws IOException {

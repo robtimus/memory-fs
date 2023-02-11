@@ -40,7 +40,6 @@ import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
-import java.nio.file.attribute.FileTime;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Map;
 import java.util.Objects;
@@ -216,53 +215,8 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     @Override
     public <V extends FileAttributeView> V getFileAttributeView(Path path, Class<V> type, LinkOption... options) {
         Objects.requireNonNull(type);
-        if (type == BasicFileAttributeView.class) {
-            boolean followLinks = LinkOptionSupport.followLinks(options);
-            return type.cast(new AttributeView("basic", toMemoryPath(path), followLinks)); //$NON-NLS-1$
-        }
-        if (type == MemoryFileAttributeView.class) {
-            boolean followLinks = LinkOptionSupport.followLinks(options);
-            return type.cast(new AttributeView("memory", toMemoryPath(path), followLinks)); //$NON-NLS-1$
-        }
-        return null;
-    }
-
-    private static final class AttributeView implements MemoryFileAttributeView {
-
-        private final String name;
-        private final MemoryPath path;
-        private final boolean followLinks;
-
-        private AttributeView(String name, MemoryPath path, boolean followLinks) {
-            this.name = Objects.requireNonNull(name);
-            this.path = Objects.requireNonNull(path);
-            this.followLinks = followLinks;
-        }
-
-        @Override
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime) throws IOException {
-            path.setTimes(lastModifiedTime, lastAccessTime, createTime, followLinks);
-        }
-
-        @Override
-        public MemoryFileAttributes readAttributes() throws IOException {
-            return path.readAttributes(followLinks);
-        }
-
-        @Override
-        public void setReadOnly(boolean value) throws IOException {
-            path.setReadOnly(value, followLinks);
-        }
-
-        @Override
-        public void setHidden(boolean value) throws IOException {
-            path.setHidden(value, followLinks);
-        }
+        boolean followLinks = LinkOptionSupport.followLinks(options);
+        return toMemoryPath(path).getFileAttributeView(type, followLinks);
     }
 
     /**

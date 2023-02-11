@@ -20,6 +20,7 @@ package com.github.robtimus.filesystems.memory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributeView;
+import com.github.robtimus.filesystems.attribute.FileAttributeViewMetadata;
 
 /**
  * A file attribute view that provides a view of the in-memory file attributes.
@@ -46,6 +47,41 @@ import java.nio.file.attribute.BasicFileAttributeView;
  * @author Rob Spoor
  */
 public interface MemoryFileAttributeView extends BasicFileAttributeView {
+
+    /**
+     * The view name.
+     *
+     * @since 2.1
+     */
+    @SuppressWarnings("nls")
+    String MEMORY_VIEW = "memory";
+
+    /**
+     * The name of the {@code readOnly} attribute.
+     *
+     * @since 2.1
+     */
+    @SuppressWarnings("nls")
+    String READ_ONLY = "readOnly";
+
+    /**
+     * The name of the {@code hidden} attribute.
+     *
+     * @since 2.1
+     */
+    @SuppressWarnings("nls")
+    String HIDDEN = "hidden";
+
+    /**
+     * Metadata for this view.
+     *
+     * @since 2.1
+     */
+    FileAttributeViewMetadata METADATA = FileAttributeViewMetadata.forView(MemoryFileAttributeView.class)
+            .withAttributes(FileAttributeViewMetadata.BASIC)
+            .withAttribute(READ_ONLY, Boolean.class)
+            .withAttribute(HIDDEN, Boolean.class)
+            .build();
 
     /**
      * Returns the name of the attribute view. Attribute views of this type have the name {@code "memory"}.

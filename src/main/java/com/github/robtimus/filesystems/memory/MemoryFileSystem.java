@@ -17,6 +17,10 @@
 
 package com.github.robtimus.filesystems.memory;
 
+import static com.github.robtimus.filesystems.SimpleAbstractPath.ROOT_PATH;
+import static com.github.robtimus.filesystems.SimpleAbstractPath.SEPARATOR;
+import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.BASIC_VIEW;
+import static com.github.robtimus.filesystems.memory.MemoryFileAttributeView.MEMORY_VIEW;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -34,7 +38,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Arrays;
@@ -54,8 +58,8 @@ import com.github.robtimus.filesystems.PathMatcherSupport;
  */
 final class MemoryFileSystem extends FileSystem {
 
-    @SuppressWarnings("nls")
-    private static final Set<String> SUPPORTED_FILE_ATTRIBUTE_VIEWS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("basic", "memory")));
+    private static final Set<String> SUPPORTED_FILE_ATTRIBUTE_VIEWS = Collections
+            .unmodifiableSet(new HashSet<>(Arrays.asList(BASIC_VIEW, MEMORY_VIEW)));
 
     private final FileSystemProvider provider;
     private final Iterable<Path> rootDirectories;
@@ -64,7 +68,7 @@ final class MemoryFileSystem extends FileSystem {
 
     MemoryFileSystem(MemoryFileSystemProvider provider, MemoryFileStore fileStore) {
         this.provider = Objects.requireNonNull(provider);
-        this.rootDirectories = Collections.<Path>singleton(new MemoryPath(this, "/")); //$NON-NLS-1$
+        this.rootDirectories = Collections.<Path>singleton(new MemoryPath(this, ROOT_PATH));
         this.fileStore = Objects.requireNonNull(fileStore);
         this.fileStores = Collections.<FileStore>singleton(fileStore);
     }
@@ -91,7 +95,7 @@ final class MemoryFileSystem extends FileSystem {
 
     @Override
     public String getSeparator() {
-        return "/"; //$NON-NLS-1$
+        return SEPARATOR;
     }
 
     @Override
@@ -113,7 +117,7 @@ final class MemoryFileSystem extends FileSystem {
     public Path getPath(String first, String... more) {
         StringBuilder sb = new StringBuilder(first);
         for (String s : more) {
-            sb.append("/").append(s); //$NON-NLS-1$
+            sb.append(SEPARATOR).append(s);
         }
         return new MemoryPath(this, sb.toString());
     }
@@ -143,7 +147,7 @@ final class MemoryFileSystem extends FileSystem {
         if (path.isAbsolute()) {
             return path;
         }
-        return new MemoryPath(this, "/" + path.path()); //$NON-NLS-1$
+        return new MemoryPath(this, SEPARATOR + path.path());
     }
 
     MemoryPath toRealPath(MemoryPath path, boolean followLinks) throws IOException {
@@ -230,20 +234,12 @@ final class MemoryFileSystem extends FileSystem {
         fileStore.checkAccess(path, modes);
     }
 
-    void setTimes(MemoryPath path, FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime, boolean followLinks) throws IOException {
-        fileStore.setTimes(path, lastModifiedTime, lastAccessTime, createTime, followLinks);
+    <V extends FileAttributeView> V getFileAttributeView(MemoryPath path, Class<V> type, boolean followLinks) {
+        return fileStore.getFileAttributeView(path, type, followLinks);
     }
 
     MemoryFileAttributes readAttributes(MemoryPath path, boolean followLinks) throws IOException {
         return fileStore.readAttributes(path, followLinks);
-    }
-
-    void setReadOnly(MemoryPath path, boolean value, boolean followLinks) throws IOException {
-        fileStore.setReadOnly(path, value, followLinks);
-    }
-
-    void setHidden(MemoryPath path, boolean value, boolean followLinks) throws IOException {
-        fileStore.setHidden(path, value, followLinks);
     }
 
     Map<String, Object> readAttributes(MemoryPath path, String attributes, boolean followLinks) throws IOException {

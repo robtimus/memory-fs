@@ -17,6 +17,18 @@
 
 package com.github.robtimus.filesystems.memory;
 
+import static com.github.robtimus.filesystems.SimpleAbstractPath.ROOT_PATH;
+import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.BASIC_VIEW;
+import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.CREATION_TIME;
+import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.LAST_ACCESS_TIME;
+import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.LAST_MODIFIED_TIME;
+import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.getAttributeName;
+import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.getAttributeNames;
+import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.getViewName;
+import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.populateAttributeMap;
+import static com.github.robtimus.filesystems.memory.MemoryFileAttributeView.HIDDEN;
+import static com.github.robtimus.filesystems.memory.MemoryFileAttributeView.MEMORY_VIEW;
+import static com.github.robtimus.filesystems.memory.MemoryFileAttributeView.READ_ONLY;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -52,18 +64,19 @@ import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.attribute.FileStoreAttributeView;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import com.github.robtimus.filesystems.AbstractDirectoryStream;
 import com.github.robtimus.filesystems.Messages;
+import com.github.robtimus.filesystems.attribute.FileAttributeSupport;
+import com.github.robtimus.filesystems.attribute.FileAttributeViewMetadata;
 
 /**
  * The in-memory file system store.
@@ -72,6 +85,11 @@ import com.github.robtimus.filesystems.Messages;
  */
 // not final for test purposes
 class MemoryFileStore extends FileStore {
+
+    // TODO: remove these two and their usages as part of the next major release
+    @SuppressWarnings("nls")
+    private static final String PREFIX_ATTRIBUTES_PROPERTY = MemoryFileStore.class.getPackage().getName() + ".prefixAttributes";
+    private static final boolean PREFIX_ATTRIBUTES = Boolean.getBoolean(PREFIX_ATTRIBUTES_PROPERTY);
 
     static final MemoryFileStore INSTANCE = new MemoryFileStore();
 
@@ -84,7 +102,7 @@ class MemoryFileStore extends FileStore {
 
     @Override
     public String name() {
-        return "/"; //$NON-NLS-1$
+        return ROOT_PATH;
     }
 
     @Override
@@ -119,7 +137,7 @@ class MemoryFileStore extends FileStore {
 
     @Override
     public boolean supportsFileAttributeView(String name) {
-        return "basic".equals(name) || "memory".equals(name); //$NON-NLS-1$ //$NON-NLS-2$
+        return BASIC_VIEW.equals(name) || MEMORY_VIEW.equals(name);
     }
 
     @Override
@@ -419,14 +437,22 @@ class MemoryFileStore extends FileStore {
         return file.newFileChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
     }
 
-    private void setAttributes(File file, FileChannel channel, FileAttribute<?>... attrs) throws IOException {
+    private void setAttributes(Node node, FileAttribute<?>... attrs) {
         for (FileAttribute<?> attribute : attrs) {
             try {
-                setAttribute(file, attribute.name(), attribute.value());
+                setAttribute(node, attribute.name(), attribute.value());
             } catch (IllegalArgumentException e) {
-                channel.close();
                 throw new UnsupportedOperationException(e.getMessage());
             }
+        }
+    }
+
+    private void setAttributes(File file, FileChannel channel, FileAttribute<?>... attrs) throws IOException {
+        try {
+            setAttributes(file, attrs);
+        } catch (final Exception e) {
+            channel.close();
+            throw e;
         }
     }
 
@@ -501,13 +527,7 @@ class MemoryFileStore extends FileStore {
 
         Directory directory = new Directory();
 
-        for (FileAttribute<?> attribute : attrs) {
-            try {
-                setAttribute(directory, attribute.name(), attribute.value());
-            } catch (IllegalArgumentException e) {
-                throw new UnsupportedOperationException(e.getMessage());
-            }
-        }
+        setAttributes(directory, attrs);
 
         parent.add(normalizedDir.fileName(), directory);
     }
@@ -521,13 +541,7 @@ class MemoryFileStore extends FileStore {
 
         Node node = new Link(target.path());
 
-        for (FileAttribute<?> attribute : attrs) {
-            try {
-                setAttribute(node, attribute.name(), attribute.value());
-            } catch (IllegalArgumentException e) {
-                throw new UnsupportedOperationException(e.getMessage());
-            }
-        }
+        setAttributes(node, attrs);
 
         parent.add(normalizedLink.fileName(), node);
     }
@@ -726,6 +740,55 @@ class MemoryFileStore extends FileStore {
         }
     }
 
+    <V extends FileAttributeView> V getFileAttributeView(MemoryPath path, Class<V> type, boolean followLinks) {
+        Objects.requireNonNull(type);
+        if (type == BasicFileAttributeView.class) {
+            return type.cast(new MemoryAttributeView(BASIC_VIEW, path, followLinks));
+        }
+        if (type == MemoryFileAttributeView.class) {
+            return type.cast(new MemoryAttributeView(MEMORY_VIEW, path, followLinks));
+        }
+        return null;
+    }
+
+    private final class MemoryAttributeView implements MemoryFileAttributeView {
+
+        private final String name;
+        private final MemoryPath path;
+        private final boolean followLinks;
+
+        private MemoryAttributeView(String name, MemoryPath path, boolean followLinks) {
+            this.name = Objects.requireNonNull(name);
+            this.path = Objects.requireNonNull(path);
+            this.followLinks = followLinks;
+        }
+
+        @Override
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime) throws IOException {
+            MemoryFileStore.this.setTimes(path, lastModifiedTime, lastAccessTime, createTime, followLinks);
+        }
+
+        @Override
+        public MemoryFileAttributes readAttributes() throws IOException {
+            return MemoryFileStore.this.readAttributes(path, followLinks);
+        }
+
+        @Override
+        public void setReadOnly(boolean value) throws IOException {
+            MemoryFileStore.this.setReadOnly(path, value, followLinks);
+        }
+
+        @Override
+        public void setHidden(boolean value) throws IOException {
+            MemoryFileStore.this.setHidden(path, value, followLinks);
+        }
+    }
+
     synchronized void setTimes(MemoryPath path, FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime, boolean followLinks)
             throws IOException {
 
@@ -761,152 +824,101 @@ class MemoryFileStore extends FileStore {
         return node.getAttributes();
     }
 
-    @SuppressWarnings("nls")
-    private static final Set<String> BASIC_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            "basic:lastModifiedTime", "basic:lastAccessTime", "basic:creationTime", "basic:size",
-            "basic:isRegularFile", "basic:isDirectory", "basic:isSymbolicLink", "basic:isOther", "basic:fileKey")));
-
-    @SuppressWarnings("nls")
-    private static final Set<String> MEMORY_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            "memory:lastModifiedTime", "memory:lastAccessTime", "memory:creationTime", "memory:size",
-            "memory:isRegularFile", "memory:isDirectory", "memory:isSymbolicLink", "memory:isOther", "memory:fileKey",
-            "memory:readOnly", "memory:hidden")));
-
     synchronized Map<String, Object> readAttributes(MemoryPath path, String attributes, boolean followLinks) throws IOException {
-        String view;
-        int pos = attributes.indexOf(':');
-        if (pos == -1) {
-            view = "basic"; //$NON-NLS-1$
-            attributes = "basic:" + attributes; //$NON-NLS-1$
-        } else {
-            view = attributes.substring(0, pos);
-        }
+        String viewName = getViewName(attributes);
+        FileAttributeViewMetadata metadata = getMetadata(viewName);
+        Set<String> attributeNames = getAttributeNames(attributes, metadata);
 
-        Set<String> allowedAttributes;
-        if (attributes.startsWith("basic:")) { //$NON-NLS-1$
-            allowedAttributes = BASIC_ATTRIBUTES;
-        } else if (attributes.startsWith("memory:")) { //$NON-NLS-1$
-            allowedAttributes = MEMORY_ATTRIBUTES;
-        } else {
-            throw Messages.fileSystemProvider().unsupportedFileAttributeView(view);
-        }
+        MemoryFileAttributes fileAttributes = readAttributes(path, followLinks);
 
-        Map<String, Object> result = getAttributeMap(attributes, allowedAttributes);
-
-        MemoryPath normalizedPath = normalize(path);
-        Node node = getExistingNode(normalizedPath, followLinks);
-
-        for (Map.Entry<String, Object> entry : result.entrySet()) {
-            switch (entry.getKey()) {
-                case "basic:lastModifiedTime": //$NON-NLS-1$
-                case "memory:lastModifiedTime": //$NON-NLS-1$
-                    entry.setValue(node.getLastModifiedTime());
-                    break;
-                case "basic:lastAccessTime": //$NON-NLS-1$
-                case "memory:lastAccessTime": //$NON-NLS-1$
-                    entry.setValue(node.getLastAccessTime());
-                    break;
-                case "basic:creationTime": //$NON-NLS-1$
-                case "memory:creationTime": //$NON-NLS-1$
-                    entry.setValue(node.getCreationTime());
-                    break;
-                case "basic:size": //$NON-NLS-1$
-                case "memory:size": //$NON-NLS-1$
-                    entry.setValue(node.getSize());
-                    break;
-                case "basic:isRegularFile": //$NON-NLS-1$
-                case "memory:isRegularFile": //$NON-NLS-1$
-                    entry.setValue(node.isRegularFile());
-                    break;
-                case "basic:isDirectory": //$NON-NLS-1$
-                case "memory:isDirectory": //$NON-NLS-1$
-                    entry.setValue(node.isDirectory());
-                    break;
-                case "basic:isSymbolicLink": //$NON-NLS-1$
-                case "memory:isSymbolicLink": //$NON-NLS-1$
-                    entry.setValue(false);
-                    break;
-                case "basic:isOther": //$NON-NLS-1$
-                case "memory:isOther": //$NON-NLS-1$
-                    entry.setValue(false);
-                    break;
-                case "basic:fileKey": //$NON-NLS-1$
-                case "memory:fileKey": //$NON-NLS-1$
-                    entry.setValue(null);
-                    break;
-                case "memory:readOnly": //$NON-NLS-1$
-                    entry.setValue(node.isReadOnly());
-                    break;
-                case "memory:hidden": //$NON-NLS-1$
-                    entry.setValue(node.isHidden());
-                    break;
-                default:
-                    // should not occur
-                    throw new IllegalStateException("unexpected attribute name: " + entry.getKey()); //$NON-NLS-1$
-            }
-        }
-        return result;
+        Map<String, Object> result = new HashMap<>();
+        populateAttributeMap(result, fileAttributes, attributeNames);
+        populateAttributeMap(result, READ_ONLY, attributeNames, fileAttributes::isReadOnly);
+        populateAttributeMap(result, HIDDEN, attributeNames, fileAttributes::isHidden);
+        return prefixAttributesIfNeeded(result, metadata);
     }
 
-    private Map<String, Object> getAttributeMap(String attributes, Set<String> allowedAttributes) {
-        int indexOfColon = attributes.indexOf(':');
-        String prefix = attributes.substring(0, indexOfColon + 1);
-        attributes = attributes.substring(indexOfColon + 1);
-
-        String[] attributeList = attributes.split(","); //$NON-NLS-1$
-        Map<String, Object> result = new HashMap<>(allowedAttributes.size());
-
-        for (String attribute : attributeList) {
-            String prefixedAttribute = prefix + attribute;
-            if (allowedAttributes.contains(prefixedAttribute)) {
-                result.put(prefixedAttribute, null);
-            } else if ("*".equals(attribute)) { //$NON-NLS-1$
-                for (String s : allowedAttributes) {
-                    result.put(s, null);
-                }
-            } else {
-                throw Messages.fileSystemProvider().unsupportedFileAttribute(attribute);
-            }
+    private FileAttributeViewMetadata getMetadata(String viewName) {
+        switch (viewName) {
+            case BASIC_VIEW:
+                return FileAttributeViewMetadata.BASIC;
+            case MEMORY_VIEW:
+                return MemoryFileAttributeView.METADATA;
+            default:
+                throw Messages.fileSystemProvider().unsupportedFileAttributeView(viewName);
         }
-        return result;
+    }
+
+    private Map<String, Object> prefixAttributesIfNeeded(Map<String, Object> attributes, FileAttributeViewMetadata metadata) {
+        return PREFIX_ATTRIBUTES
+                ? prefixAttributes(attributes, metadata)
+                : attributes;
+    }
+
+    static Map<String, Object> prefixAttributes(Map<String, Object> attributes, FileAttributeViewMetadata metadata) {
+        String prefix = metadata.viewName() + ":"; //$NON-NLS-1$
+        return attributes.entrySet().stream()
+                .collect(Collectors.toMap(e -> prefix + e.getKey(), Map.Entry::getValue));
     }
 
     synchronized void setAttribute(MemoryPath path, String attribute, Object value, boolean followLinks) throws IOException {
-        String view;
-        int pos = attribute.indexOf(':');
-        if (pos == -1) {
-            view = "basic"; //$NON-NLS-1$
-            attribute = "basic:" + attribute; //$NON-NLS-1$
-        } else {
-            view = attribute.substring(0, pos);
-        }
-        if (!"basic".equals(view) && !"memory".equals(view)) { //$NON-NLS-1$ //$NON-NLS-2$
-            throw Messages.fileSystemProvider().unsupportedFileAttributeView(view);
-        }
+        String viewName = getViewName(attribute);
+        String attributeName = getAttributeName(attribute);
 
-        MemoryPath normalizedPath = normalize(path);
-        Node node = getExistingNode(normalizedPath, followLinks);
-        setAttribute(node, attribute, value);
+        switch (viewName) {
+            case BASIC_VIEW:
+                setBasicAttribute(path, attributeName, value, followLinks);
+                break;
+            case MEMORY_VIEW:
+                setMemoryAttributes(path, attributeName, value, followLinks);
+                break;
+            default:
+                throw Messages.fileSystemProvider().unsupportedFileAttributeView(viewName);
+        }
+    }
+
+    private void setBasicAttribute(MemoryPath path, String attribute, Object value, boolean followLinks) throws IOException {
+        BasicFileAttributeView view = getFileAttributeView(path, BasicFileAttributeView.class, followLinks);
+        FileAttributeSupport.setAttribute(attribute, value, view);
+    }
+
+    private void setMemoryAttributes(MemoryPath path, String attribute, Object value, boolean followLinks) throws IOException {
+        MemoryFileAttributeView view = getFileAttributeView(path, MemoryFileAttributeView.class, followLinks);
+        switch (attribute) {
+            case READ_ONLY:
+                view.setReadOnly((boolean) value);
+                break;
+            case HIDDEN:
+                view.setHidden((boolean) value);
+                break;
+            default:
+                FileAttributeSupport.setAttribute(attribute, value, view);
+                break;
+        }
     }
 
     private void setAttribute(Node node, String attribute, Object value) {
+        final String colon = ":"; //$NON-NLS-1$
         switch (attribute) {
-            case "basic:lastModifiedTime": //$NON-NLS-1$
-            case "memory:lastModifiedTime": //$NON-NLS-1$
+            case LAST_MODIFIED_TIME:
+            case BASIC_VIEW + colon + LAST_MODIFIED_TIME:
+            case MEMORY_VIEW + colon + LAST_MODIFIED_TIME:
                 node.setLastModifiedTime((FileTime) value);
                 break;
-            case "basic:lastAccessTime": //$NON-NLS-1$
-            case "memory:lastAccessTime": //$NON-NLS-1$
+            case LAST_ACCESS_TIME:
+            case BASIC_VIEW + colon + LAST_ACCESS_TIME:
+            case MEMORY_VIEW + colon + LAST_ACCESS_TIME:
                 node.setLastAccessTime((FileTime) value);
                 break;
-            case "basic:creationTime": //$NON-NLS-1$
-            case "memory:creationTime": //$NON-NLS-1$
+            case CREATION_TIME:
+            case BASIC_VIEW + colon + CREATION_TIME:
+            case MEMORY_VIEW + colon + CREATION_TIME:
                 node.setCreationTime((FileTime) value);
                 break;
-            case "memory:readOnly": //$NON-NLS-1$
+            case MEMORY_VIEW + colon + READ_ONLY:
                 node.setReadOnly((Boolean) value);
                 break;
-            case "memory:hidden": //$NON-NLS-1$
+            case MEMORY_VIEW + colon + HIDDEN:
                 node.setHidden((Boolean) value);
                 break;
             default:

@@ -62,7 +62,7 @@
   </issueManagement>
 
   <properties>
-    <version.fs-core>2.0.2</version.fs-core>
+    <version.fs-core>2.2-SNAPSHOT</version.fs-core>
   </properties>
 
   <dependencies>
