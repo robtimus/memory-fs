@@ -23,6 +23,8 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryStream;
@@ -297,6 +299,78 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     }
 
     /**
+     * Returns the content of an existing file.
+     * <p>
+     * This method is wrapper around {@link #getContent(String)} that converts the content into a string using the
+     * {@link StandardCharsets#UTF_8 UTF-8} {@link Charset charset}.
+     *
+     * @param path The path to the file to return the content of.
+     * @return The content of the given file.
+     * @throws NullPointerException If the given path is {@code null}.
+     * @throws IllegalArgumentException If the path does not lead to a valid URI.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static String getContentAsString(String path) throws IOException {
+        return getContentAsString(path, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Returns the content of an existing file.
+     * <p>
+     * This method is wrapper around {@link #getContent(String)} that converts the content into a string.
+     *
+     * @param path The path to the file to return the content of.
+     * @param charset The charset to use for converting the contents into a string.
+     * @return The content of the given file.
+     * @throws NullPointerException If the given path or charset is {@code null}.
+     * @throws IllegalArgumentException If the path does not lead to a valid URI.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static String getContentAsString(String path, Charset charset) throws IOException {
+        Objects.requireNonNull(charset);
+        byte[] content = getContent(path);
+        return new String(content, charset);
+    }
+
+    /**
+     * Returns the content of an existing file.
+     * <p>
+     * This method is wrapper around {@link #getContent(Path)} that converts the content into a string using the {@link StandardCharsets#UTF_8 UTF-8}
+     * {@link Charset charset}.
+     *
+     * @param path The path to the file to return the content of.
+     * @return The content of the given file.
+     * @throws NullPointerException If the given path is {@code null}.
+     * @throws ProviderMismatchException If the given path is not an in-memory path.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static String getContentAsString(Path path) throws IOException {
+        return getContentAsString(path, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Returns the content of an existing file.
+     * <p>
+     * This method is wrapper around {@link #getContent(Path)} that converts the content into a string.
+     *
+     * @param path The path to the file to return the content of.
+     * @param charset The charset to use for converting the contents into a string.
+     * @return The content of the given file.
+     * @throws NullPointerException If the given path or charset is {@code null}.
+     * @throws ProviderMismatchException If the given path is not an in-memory path.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static String getContentAsString(Path path, Charset charset) throws IOException {
+        Objects.requireNonNull(charset);
+        byte[] content = getContent(path);
+        return new String(content, charset);
+    }
+
+    /**
      * Sets the content of a file. If the file does not exist it will be created. This method is shorthand for the following: <pre>
      * URI uri = URI.create("memory:" + path);
      * setContents(Paths.get(uri), content);</pre>
@@ -331,6 +405,74 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     public static void setContent(Path path, byte[] content) throws IOException {
         Objects.requireNonNull(content);
         toMemoryPath(path).setContent(content);
+    }
+
+    /**
+     * Sets the content of a file. If the file does not exist it will be created.
+     * <p>
+     * This method is wrapper around {@link #setContent(String, byte[])} that converts the content into bytes using the
+     * {@link StandardCharsets#UTF_8 UTF-8} {@link Charset charset}.
+     *
+     * @param path The path to the file to set the content of.
+     * @param content The new content for the file.
+     * @throws NullPointerException If the given path, content or charset is {@code null}.
+     * @throws IllegalArgumentException If the path does not lead to a valid URI.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static void setContentAsString(String path, String content) throws IOException {
+        setContentAsString(path, content, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Sets the content of a file. If the file does not exist it will be created.
+     * <p>
+     * This method is wrapper around {@link #setContent(String, byte[])} that converts the content into bytes.
+     *
+     * @param path The path to the file to set the content of.
+     * @param content The new content for the file.
+     * @param charset The charset to use for converting the contents into bytes.
+     * @throws NullPointerException If the given path, content or charset is {@code null}.
+     * @throws IllegalArgumentException If the path does not lead to a valid URI.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static void setContentAsString(String path, String content, Charset charset) throws IOException {
+        setContent(path, content.getBytes(charset));
+    }
+
+    /**
+     * Sets the content of a file. If the file does not exist it will be created.
+     * <p>
+     * This method is wrapper around {@link #setContent(Path, byte[])} that converts the content into bytes using the
+     * {@link StandardCharsets#UTF_8 UTF-8} {@link Charset charset}.
+     *
+     * @param path The path to the file to set the content of.
+     * @param content The new content for the file.
+     * @throws NullPointerException If the given path, content or charset is {@code null}.
+     * @throws ProviderMismatchException If the given path is not an in-memory path.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static void setContentAsString(Path path, String content) throws IOException {
+        setContentAsString(path, content, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Sets the content of a file. If the file does not exist it will be created.
+     * <p>
+     * This method is wrapper around {@link #setContent(Path, byte[])} that converts the content into bytes.
+     *
+     * @param path The path to the file to set the content of.
+     * @param content The new content for the file.
+     * @param charset The charset to use for converting the contents into bytes.
+     * @throws NullPointerException If the given path, content or charset is {@code null}.
+     * @throws ProviderMismatchException If the given path is not an in-memory path.
+     * @throws IOException If an I/O error occurs.
+     * @since 2.1
+     */
+    public static void setContentAsString(Path path, String content, Charset charset) throws IOException {
+        setContent(path, content.getBytes(charset));
     }
 
     private static MemoryPath toMemoryPath(Path path) {
