@@ -69,9 +69,9 @@ final class MemoryFileSystem extends FileSystem {
 
     MemoryFileSystem(MemoryFileSystemProvider provider, MemoryFileStore fileStore) {
         this.provider = Objects.requireNonNull(provider);
-        this.rootDirectories = Collections.<Path>singleton(new MemoryPath(this, ROOT_PATH));
+        this.rootDirectories = Collections.singleton(new MemoryPath(this, ROOT_PATH));
         this.fileStore = Objects.requireNonNull(fileStore);
-        this.fileStores = Collections.<FileStore>singleton(fileStore);
+        this.fileStores = Collections.singleton(fileStore);
     }
 
     @Override
