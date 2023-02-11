@@ -593,7 +593,8 @@ public final class MemoryFileSystemProvider extends FileSystemProvider {
     }
 
     /**
-     * Clears all stored in-memory files and directories. Afterwards only the root directory will exist.
+     * Clears all stored in-memory files and directories.
+     * Afterwards only the root directory will exist, and its read-only and hidden attributes will have both been reset to {@code false}.
      *
      * @since 1.1
      */

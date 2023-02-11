@@ -1079,6 +1079,11 @@ class MemoryFileStore extends FileStore {
             return attributes;
         }
 
+        synchronized void resetAttributes() {
+            setReadOnly(false);
+            setHidden(false);
+        }
+
         private final class FileAttributes implements MemoryFileAttributes {
 
             @Override
@@ -1206,6 +1211,8 @@ class MemoryFileStore extends FileStore {
         }
 
         synchronized void clear() {
+            resetAttributes();
+
             if (!children.isEmpty()) {
                 children.clear();
 

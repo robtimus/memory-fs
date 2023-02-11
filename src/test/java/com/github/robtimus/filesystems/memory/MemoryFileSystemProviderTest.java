@@ -61,6 +61,7 @@ import java.nio.file.attribute.FileOwnerAttributeView;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
@@ -1131,6 +1132,16 @@ class MemoryFileSystemProviderTest {
         assertTrue(Files.isRegularFile(bar));
         assertTrue(Files.isRegularFile(baz));
 
+        MemoryFileAttributeView view = Files.getFileAttributeView(foo.getParent(), MemoryFileAttributeView.class);
+        view.setReadOnly(true);
+        view.setHidden(true);
+
+        Map<String, ?> attributes = Files.readAttributes(foo.getParent(), "memory:readOnly,hidden");
+        Map<String, Object> expectedAttributes = new HashMap<>();
+        expectedAttributes.put("readOnly", true);
+        expectedAttributes.put("hidden", true);
+        assertEquals(expectedAttributes, attributes);
+
         MemoryFileSystemProvider.clear();
 
         assertFalse(Files.exists(foo));
@@ -1141,5 +1152,10 @@ class MemoryFileSystemProviderTest {
             Iterator<Path> iterator = stream.iterator();
             assertFalse(iterator.hasNext());
         }
+
+        attributes = Files.readAttributes(foo.getParent(), "memory:readOnly,hidden");
+        expectedAttributes.put("readOnly", false);
+        expectedAttributes.put("hidden", false);
+        assertEquals(expectedAttributes, attributes);
     }
 }
