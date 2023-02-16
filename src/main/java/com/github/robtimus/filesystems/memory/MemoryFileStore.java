@@ -19,13 +19,11 @@ package com.github.robtimus.filesystems.memory;
 
 import static com.github.robtimus.filesystems.SimpleAbstractPath.ROOT_PATH;
 import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.BASIC_VIEW;
-import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.CREATION_TIME;
-import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.LAST_ACCESS_TIME;
-import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.LAST_MODIFIED_TIME;
 import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.getAttributeName;
 import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.getAttributeNames;
 import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.getViewName;
 import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.populateAttributeMap;
+import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.toAttributeMap;
 import static com.github.robtimus.filesystems.memory.MemoryFileAttributeView.HIDDEN;
 import static com.github.robtimus.filesystems.memory.MemoryFileAttributeView.MEMORY_VIEW;
 import static com.github.robtimus.filesystems.memory.MemoryFileAttributeView.READ_ONLY;
@@ -84,8 +82,7 @@ import com.github.robtimus.filesystems.attribute.FileAttributeViewMetadata;
  *
  * @author Rob Spoor
  */
-// not final for test purposes
-class MemoryFileStore extends FileStore {
+final class MemoryFileStore extends FileStore {
 
     // TODO: remove these two and their usages as part of the next major release
     @SuppressWarnings("nls")
@@ -398,6 +395,7 @@ class MemoryFileStore extends FileStore {
 
     synchronized FileChannel newFileChannel(MemoryPath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
         OpenOptions openOptions = OpenOptions.forNewFileChannel(options);
+        Map<String, Object> attributeMap = toAttributeMap(attrs, FileAttributeViewMetadata.BASIC, MemoryFileAttributeView.METADATA);
 
         MemoryPath normalizedPath = normalize(path);
         Directory parent = getExistingParentNode(normalizedPath);
@@ -435,7 +433,7 @@ class MemoryFileStore extends FileStore {
 
             FileChannel channel = file.newFileChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
 
-            setAttributes(file, channel, attrs);
+            setAttributes(file, channel, attributeMap);
 
             parent.add(fileToSave.fileName(), file);
 
@@ -455,19 +453,15 @@ class MemoryFileStore extends FileStore {
         return file.newFileChannel(openOptions.read, openOptions.write, openOptions.append, onClose);
     }
 
-    private void setAttributes(Node node, FileAttribute<?>... attrs) {
-        for (FileAttribute<?> attribute : attrs) {
-            try {
-                setAttribute(node, attribute.name(), attribute.value());
-            } catch (IllegalArgumentException e) {
-                throw new UnsupportedOperationException(e.getMessage());
-            }
+    private void setAttributes(Node node, Map<String, Object> attributeMap) throws IOException {
+        for (Map.Entry<String, Object> entry : attributeMap.entrySet()) {
+            setAttribute(node, entry.getKey(), entry.getValue());
         }
     }
 
-    private void setAttributes(File file, FileChannel channel, FileAttribute<?>... attrs) throws IOException {
+    private void setAttributes(File file, FileChannel channel, Map<String, Object> attributeMap) throws IOException {
         try {
-            setAttributes(file, attrs);
+            setAttributes(file, attributeMap);
         } catch (final Exception e) {
             channel.close();
             throw e;
@@ -535,6 +529,8 @@ class MemoryFileStore extends FileStore {
     }
 
     synchronized void createDirectory(MemoryPath dir, FileAttribute<?>... attrs) throws IOException {
+        Map<String, Object> attributeMap = toAttributeMap(attrs, FileAttributeViewMetadata.BASIC, MemoryFileAttributeView.METADATA);
+
         MemoryPath normalizedDir = normalize(dir);
         if (normalizedDir.getNameCount() == 0) {
             throw new FileAlreadyExistsException(normalizedDir.path());
@@ -545,12 +541,14 @@ class MemoryFileStore extends FileStore {
 
         Directory directory = new Directory();
 
-        setAttributes(directory, attrs);
+        setAttributes(directory, attributeMap);
 
         parent.add(normalizedDir.fileName(), directory);
     }
 
     synchronized void createSymbolicLink(MemoryPath link, MemoryPath target, FileAttribute<?>... attrs) throws IOException {
+        Map<String, Object> attributeMap = toAttributeMap(attrs, FileAttributeViewMetadata.BASIC, MemoryFileAttributeView.METADATA);
+
         MemoryPath normalizedLink = normalize(link);
         // don't normalize target, it will be used as-is as the target of the link
 
@@ -559,7 +557,7 @@ class MemoryFileStore extends FileStore {
 
         Node node = new Link(target.path());
 
-        setAttributes(node, attrs);
+        setAttributes(node, attributeMap);
 
         parent.add(normalizedLink.fileName(), node);
     }
@@ -788,52 +786,29 @@ class MemoryFileStore extends FileStore {
 
         @Override
         public void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime) throws IOException {
-            MemoryFileStore.this.setTimes(path, lastModifiedTime, lastAccessTime, createTime, followLinks);
+            getDelegate().setTimes(lastModifiedTime, lastAccessTime, createTime);
         }
 
         @Override
         public MemoryFileAttributes readAttributes() throws IOException {
-            return MemoryFileStore.this.readAttributes(path, followLinks);
+            return getDelegate().readAttributes();
         }
 
         @Override
         public void setReadOnly(boolean value) throws IOException {
-            MemoryFileStore.this.setReadOnly(path, value, followLinks);
+            getDelegate().setReadOnly(value);
         }
 
         @Override
         public void setHidden(boolean value) throws IOException {
-            MemoryFileStore.this.setHidden(path, value, followLinks);
+            getDelegate().setHidden(value);
         }
-    }
 
-    synchronized void setTimes(MemoryPath path, FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime, boolean followLinks)
-            throws IOException {
-
-        MemoryPath normalizedPath = normalize(path);
-        Node node = getExistingNode(normalizedPath, followLinks);
-
-        if (lastModifiedTime != null) {
-            node.setLastModifiedTime(lastModifiedTime);
+        private MemoryFileAttributeView getDelegate() throws IOException {
+            MemoryPath normalizedPath = normalize(path);
+            Node node = getExistingNode(normalizedPath, followLinks);
+            return node.getAttributeView();
         }
-        if (lastAccessTime != null) {
-            node.setLastAccessTime(lastAccessTime);
-        }
-        if (createTime != null) {
-            node.setCreationTime(createTime);
-        }
-    }
-
-    synchronized void setReadOnly(MemoryPath path, boolean value, boolean followLinks) throws IOException {
-        MemoryPath normalizedPath = normalize(path);
-        Node node = getExistingNode(normalizedPath, followLinks);
-        node.setReadOnly(value);
-    }
-
-    synchronized void setHidden(MemoryPath path, boolean value, boolean followLinks) throws IOException {
-        MemoryPath normalizedPath = normalize(path);
-        Node node = getExistingNode(normalizedPath, followLinks);
-        node.setHidden(value);
     }
 
     synchronized MemoryFileAttributes readAttributes(MemoryPath path, boolean followLinks) throws IOException {
@@ -880,28 +855,34 @@ class MemoryFileStore extends FileStore {
     }
 
     synchronized void setAttribute(MemoryPath path, String attribute, Object value, boolean followLinks) throws IOException {
+        MemoryPath normalizedPath = normalize(path);
+        Node node = getExistingNode(normalizedPath, followLinks);
+        setAttribute(node, attribute, value);
+    }
+
+    private void setAttribute(Node node, String attribute, Object value) throws IOException {
         String viewName = getViewName(attribute);
         String attributeName = getAttributeName(attribute);
 
+        MemoryFileAttributeView view = node.getAttributeView();
+
         switch (viewName) {
             case BASIC_VIEW:
-                setBasicAttribute(path, attributeName, value, followLinks);
+                setBasicAttribute(view, attributeName, value);
                 break;
             case MEMORY_VIEW:
-                setMemoryAttributes(path, attributeName, value, followLinks);
+                setMemoryAttributes(view, attributeName, value);
                 break;
             default:
                 throw Messages.fileSystemProvider().unsupportedFileAttributeView(viewName);
         }
     }
 
-    private void setBasicAttribute(MemoryPath path, String attribute, Object value, boolean followLinks) throws IOException {
-        BasicFileAttributeView view = getFileAttributeView(path, BasicFileAttributeView.class, followLinks);
+    private void setBasicAttribute(BasicFileAttributeView view, String attribute, Object value) throws IOException {
         FileAttributeSupport.setAttribute(attribute, value, view);
     }
 
-    private void setMemoryAttributes(MemoryPath path, String attribute, Object value, boolean followLinks) throws IOException {
-        MemoryFileAttributeView view = getFileAttributeView(path, MemoryFileAttributeView.class, followLinks);
+    private void setMemoryAttributes(MemoryFileAttributeView view, String attribute, Object value) throws IOException {
         switch (attribute) {
             case READ_ONLY:
                 view.setReadOnly((boolean) value);
@@ -912,35 +893,6 @@ class MemoryFileStore extends FileStore {
             default:
                 FileAttributeSupport.setAttribute(attribute, value, view);
                 break;
-        }
-    }
-
-    private void setAttribute(Node node, String attribute, Object value) {
-        final String colon = ":"; //$NON-NLS-1$
-        switch (attribute) {
-            case LAST_MODIFIED_TIME:
-            case BASIC_VIEW + colon + LAST_MODIFIED_TIME:
-            case MEMORY_VIEW + colon + LAST_MODIFIED_TIME:
-                node.setLastModifiedTime((FileTime) value);
-                break;
-            case LAST_ACCESS_TIME:
-            case BASIC_VIEW + colon + LAST_ACCESS_TIME:
-            case MEMORY_VIEW + colon + LAST_ACCESS_TIME:
-                node.setLastAccessTime((FileTime) value);
-                break;
-            case CREATION_TIME:
-            case BASIC_VIEW + colon + CREATION_TIME:
-            case MEMORY_VIEW + colon + CREATION_TIME:
-                node.setCreationTime((FileTime) value);
-                break;
-            case MEMORY_VIEW + colon + READ_ONLY:
-                node.setReadOnly((Boolean) value);
-                break;
-            case MEMORY_VIEW + colon + HIDDEN:
-                node.setHidden((Boolean) value);
-                break;
-            default:
-                throw Messages.fileSystemProvider().unsupportedFileAttribute(attribute);
         }
     }
 
@@ -962,6 +914,7 @@ class MemoryFileStore extends FileStore {
         private boolean readOnly;
         private boolean hidden;
 
+        private MemoryFileAttributeView attributeView;
         private MemoryFileAttributes attributes;
 
         Node() {
@@ -1072,6 +1025,13 @@ class MemoryFileStore extends FileStore {
             this.hidden = hidden;
         }
 
+        synchronized MemoryFileAttributeView getAttributeView() {
+            if (attributeView == null) {
+                attributeView = new FileAttributeView();
+            }
+            return attributeView;
+        }
+
         synchronized MemoryFileAttributes getAttributes() {
             if (attributes == null) {
                 attributes = new FileAttributes();
@@ -1082,6 +1042,42 @@ class MemoryFileStore extends FileStore {
         synchronized void resetAttributes() {
             setReadOnly(false);
             setHidden(false);
+        }
+
+        private final class FileAttributeView implements MemoryFileAttributeView {
+
+            @Override
+            public String name() {
+                return MEMORY_VIEW;
+            }
+
+            @Override
+            public void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime) throws IOException {
+                if (lastModifiedTime != null) {
+                    setLastModifiedTime(lastModifiedTime);
+                }
+                if (lastAccessTime != null) {
+                    setLastAccessTime(lastAccessTime);
+                }
+                if (createTime != null) {
+                    setCreationTime(createTime);
+                }
+            }
+
+            @Override
+            public MemoryFileAttributes readAttributes() throws IOException {
+                return getAttributes();
+            }
+
+            @Override
+            public void setReadOnly(boolean value) throws IOException {
+                Node.this.setReadOnly(value);
+            }
+
+            @Override
+            public void setHidden(boolean value) throws IOException {
+                Node.this.setHidden(value);
+            }
         }
 
         private final class FileAttributes implements MemoryFileAttributes {

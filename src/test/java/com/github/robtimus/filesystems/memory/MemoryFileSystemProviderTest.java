@@ -28,14 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -82,7 +74,7 @@ class MemoryFileSystemProviderTest {
 
     @BeforeEach
     void setupProvider() {
-        fileStore = spy(MemoryFileStore.class);
+        fileStore = new MemoryFileStore();
 
         provider = new MemoryFileSystemProvider(fileStore);
         fs = new MemoryFileSystem(provider, fileStore);
@@ -248,65 +240,87 @@ class MemoryFileSystemProviderTest {
     void testGetFileAttributeViewReadAttributes() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
-        doReturn(null).when(fileStore).readAttributes(path, true);
+        fileStore.createDirectory(path.getParent());
+        fileStore.setContent(path, new byte[100]);
 
         BasicFileAttributeView view = provider.getFileAttributeView(path, BasicFileAttributeView.class);
         assertNotNull(view);
 
-        verify(fileStore, never()).readAttributes(any(MemoryPath.class), anyBoolean());
+        BasicFileAttributes attributes = view.readAttributes();
 
-        view.readAttributes();
-
-        verify(fileStore).readAttributes(path, true);
+        assertNotNull(attributes.creationTime());
+        assertEquals(attributes.creationTime(), attributes.lastModifiedTime());
+        assertEquals(attributes.creationTime(), attributes.lastAccessTime());
+        assertTrue(attributes.isRegularFile());
+        assertFalse(attributes.isDirectory());
+        assertEquals(100, attributes.size());
     }
 
     @Test
     void testGetFileAttributeViewSetTimes() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
-        doNothing().when(fileStore).setTimes(eq(path), any(FileTime.class), any(FileTime.class), any(FileTime.class), anyBoolean());
-        doNothing().when(fileStore).setTimes(path, null, null, null, true);
+        fileStore.createDirectory(path.getParent());
+        fileStore.setContent(path, new byte[0]);
+
+        MemoryFileAttributes attributes = fileStore.readAttributes(path, true);
+
+        FileTime originalLastModifiedTime = attributes.lastModifiedTime();
+        FileTime originalLastAccessTime = attributes.lastAccessTime();
+        FileTime originalCreationTime = attributes.creationTime();
 
         BasicFileAttributeView view = provider.getFileAttributeView(path, BasicFileAttributeView.class);
         assertNotNull(view);
 
-        verify(fileStore, never()).setTimes(any(MemoryPath.class), any(FileTime.class), any(FileTime.class), any(FileTime.class), anyBoolean());
-
         view.setTimes(null, null, null);
 
-        verify(fileStore).setTimes(path, null, null, null, true);
+        attributes = fileStore.readAttributes(path, true);
+
+        assertEquals(originalLastModifiedTime, attributes.lastModifiedTime());
+        assertEquals(originalLastAccessTime, attributes.lastAccessTime());
+        assertEquals(originalCreationTime, attributes.creationTime());
+
+        view.setTimes(FileTime.fromMillis(123456L), FileTime.fromMillis(1234567L), FileTime.fromMillis(12345678L));
+
+        attributes = fileStore.readAttributes(path, true);
+
+        assertEquals(123456L, attributes.lastModifiedTime().toMillis());
+        assertEquals(1234567L, attributes.lastAccessTime().toMillis());
+        assertEquals(12345678L, attributes.creationTime().toMillis());
     }
 
     @Test
     void testGetFileAttributeViewSetReadOnly() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
-        doNothing().when(fileStore).setReadOnly(eq(path), anyBoolean(), anyBoolean());
+        fileStore.createDirectory(path.getParent());
+        fileStore.setContent(path, new byte[0]);
 
         MemoryFileAttributeView view = provider.getFileAttributeView(path, MemoryFileAttributeView.class);
         assertNotNull(view);
 
-        verify(fileStore, never()).setReadOnly(any(MemoryPath.class), anyBoolean(), anyBoolean());
+        assertFalse(fileStore.readAttributes(path, true).isReadOnly());
 
         view.setReadOnly(true);
 
-        verify(fileStore).setReadOnly(path, true, true);
+        assertTrue(fileStore.readAttributes(path, true).isReadOnly());
     }
 
     @Test
     void testGetFileAttributeViewSetHidden() throws IOException {
         MemoryPath path = new MemoryPath(fs, "/foo/bar");
 
-        doNothing().when(fileStore).setHidden(eq(path), anyBoolean(), anyBoolean());
+        fileStore.createDirectory(path.getParent());
+        fileStore.setContent(path, new byte[0]);
 
         MemoryFileAttributeView view = provider.getFileAttributeView(path, MemoryFileAttributeView.class);
         assertNotNull(view);
 
-        verify(fileStore, never()).setHidden(any(MemoryPath.class), anyBoolean(), anyBoolean());
+        assertFalse(fileStore.isHidden(path));
 
         view.setHidden(true);
 
-        verify(fileStore).setHidden(path, true, true);
+        assertTrue(fileStore.isHidden(path));
     }
 
     @Test

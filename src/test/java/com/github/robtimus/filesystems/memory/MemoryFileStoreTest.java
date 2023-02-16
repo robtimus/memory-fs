@@ -1110,7 +1110,7 @@ class MemoryFileStoreTest {
     }
 
     @Test
-    void testNewByteChannelWriteNonExistingCreateWithInvalidAttributes() {
+    void testNewByteChannelWriteNonExistingCreateWithInvalidAttributeView() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1127,14 +1127,38 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("something:else").getMessage(), exception.getMessage());
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
     }
 
     @Test
-    void testNewByteChannelWriteNonExistingCreateNewWithInvalidAttributes() {
+    void testNewByteChannelWriteNonExistingCreateWithInvalidAttributes() {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", true),
+                new SimpleFileAttribute<>("memory:hidden", true),
+                new SimpleFileAttribute<>("memory:other", "foo"),
+        };
+
+        MemoryPath path = createPath("/foo/bar");
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+
+        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
+                () -> provider.newByteChannel(path, options, attributes));
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+    }
+
+    @Test
+    void testNewByteChannelWriteNonExistingCreateNewWithInvalidAttributeView() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1151,7 +1175,31 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("something:else").getMessage(), exception.getMessage());
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+    }
+
+    @Test
+    void testNewByteChannelWriteNonExistingCreateNewWithInvalidAttributes() {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", true),
+                new SimpleFileAttribute<>("memory:hidden", true),
+                new SimpleFileAttribute<>("memory:other", "foo"),
+        };
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        MemoryPath path = createPath("/foo/bar");
+
+        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
+                () -> provider.newByteChannel(path, options, attributes));
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -1573,7 +1621,7 @@ class MemoryFileStoreTest {
     }
 
     @Test
-    void testNewByteChannelReadWriteNonExistingCreateWithInvalidAttributes() {
+    void testNewByteChannelReadWriteNonExistingCreateWithInvalidAttributeView() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1590,14 +1638,38 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("something:else").getMessage(), exception.getMessage());
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
     }
 
     @Test
-    void testNewByteChannelReadWriteNonExistingCreateNewWithInvalidAttributes() {
+    void testNewByteChannelReadWriteNonExistingCreateWithInvalidAttributes() {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", true),
+                new SimpleFileAttribute<>("memory:hidden", true),
+                new SimpleFileAttribute<>("memory:other", "foo"),
+        };
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+        MemoryPath path = createPath("/foo/bar");
+
+        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
+                () -> provider.newByteChannel(path, options, attributes));
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+    }
+
+    @Test
+    void testNewByteChannelReadWriteNonExistingCreateNewWithInvalidAttributeView() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1614,7 +1686,31 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("something:else").getMessage(), exception.getMessage());
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+    }
+
+    @Test
+    void testNewByteChannelReadWriteNonExistingCreateNewWithInvalidAttributes() {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", true),
+                new SimpleFileAttribute<>("memory:hidden", true),
+                new SimpleFileAttribute<>("memory:other", "foo"),
+        };
+
+        Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        MemoryPath path = createPath("/foo/bar");
+
+        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
+                () -> provider.newByteChannel(path, options, attributes));
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -1831,7 +1927,7 @@ class MemoryFileStoreTest {
     }
 
     @Test
-    void testCreateDirectoryWithInvalidAttributes() {
+    void testCreateDirectoryWithInvalidAttributeView() {
         FileAttribute<?>[] attributes = {
                 new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
                 new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
@@ -1844,7 +1940,26 @@ class MemoryFileStoreTest {
         MemoryPath path = createPath("/foo");
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> provider.createDirectory(path, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("something:else").getMessage(), exception.getMessage());
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
+
+        assertNull(root.get("foo"));
+    }
+
+    @Test
+    void testCreateDirectoryWithInvalidAttributes() {
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", true),
+                new SimpleFileAttribute<>("memory:hidden", true),
+                new SimpleFileAttribute<>("memory:other", "foo"),
+        };
+
+        MemoryPath path = createPath("/foo");
+
+        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> provider.createDirectory(path, attributes));
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
 
         assertNull(root.get("foo"));
     }
@@ -1982,7 +2097,7 @@ class MemoryFileStoreTest {
     }
 
     @Test
-    void testCreateSymbolicLinkWithInvalidAttributes() {
+    void testCreateSymbolicLinkWithInvalidAttributeView() {
         Directory foo = (Directory) root.add("foo", new Directory());
 
         FileAttribute<?>[] attributes = {
@@ -1999,7 +2114,32 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.createSymbolicLink(link, target, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("something:else").getMessage(), exception.getMessage());
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
+
+        assertSame(foo, root.get("foo"));
+        assertTrue(foo.isEmpty());
+        assertNull(root.get("link"));
+    }
+
+    @Test
+    void testCreateSymbolicLinkWithInvalidAttributes() {
+        Directory foo = (Directory) root.add("foo", new Directory());
+
+        FileAttribute<?>[] attributes = {
+                new SimpleFileAttribute<>("basic:lastModifiedTime", FileTime.fromMillis(123456L)),
+                new SimpleFileAttribute<>("basic:lastAccessTime", FileTime.fromMillis(1234567L)),
+                new SimpleFileAttribute<>("basic:creationTime", FileTime.fromMillis(12345678L)),
+                new SimpleFileAttribute<>("memory:readOnly", true),
+                new SimpleFileAttribute<>("memory:hidden", true),
+                new SimpleFileAttribute<>("memory:other", "foo"),
+        };
+
+        MemoryPath link = createPath("/link");
+        MemoryPath target = createPath("/foo/bar");
+
+        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
+                () -> provider.createSymbolicLink(link, target, attributes));
+        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
