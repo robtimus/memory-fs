@@ -24,6 +24,7 @@ import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.get
 import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.getViewName;
 import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.populateAttributeMap;
 import static com.github.robtimus.filesystems.attribute.FileAttributeSupport.toAttributeMap;
+import static com.github.robtimus.filesystems.attribute.FileAttributeViewMetadata.BASIC;
 import static com.github.robtimus.filesystems.memory.MemoryFileAttributeView.HIDDEN;
 import static com.github.robtimus.filesystems.memory.MemoryFileAttributeView.MEMORY_VIEW;
 import static com.github.robtimus.filesystems.memory.MemoryFileAttributeView.READ_ONLY;
@@ -75,6 +76,7 @@ import java.util.stream.Collectors;
 import com.github.robtimus.filesystems.AbstractDirectoryStream;
 import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.attribute.FileAttributeSupport;
+import com.github.robtimus.filesystems.attribute.FileAttributeViewCollection;
 import com.github.robtimus.filesystems.attribute.FileAttributeViewMetadata;
 
 /**
@@ -90,6 +92,8 @@ final class MemoryFileStore extends FileStore {
     private static final boolean PREFIX_ATTRIBUTES = Boolean.getBoolean(PREFIX_ATTRIBUTES_PROPERTY);
 
     static final MemoryFileStore INSTANCE = new MemoryFileStore();
+
+    static final FileAttributeViewCollection VIEWS = FileAttributeViewCollection.withViews(BASIC, MemoryFileAttributeView.METADATA);
 
     final Directory rootNode;
 
@@ -130,12 +134,12 @@ final class MemoryFileStore extends FileStore {
 
     @Override
     public boolean supportsFileAttributeView(Class<? extends FileAttributeView> type) {
-        return type == BasicFileAttributeView.class || type == MemoryFileAttributeView.class;
+        return VIEWS.containsView(type);
     }
 
     @Override
     public boolean supportsFileAttributeView(String name) {
-        return BASIC_VIEW.equals(name) || MEMORY_VIEW.equals(name);
+        return VIEWS.containsView(name);
     }
 
     @Override
@@ -395,7 +399,7 @@ final class MemoryFileStore extends FileStore {
 
     synchronized FileChannel newFileChannel(MemoryPath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
         OpenOptions openOptions = OpenOptions.forNewFileChannel(options);
-        Map<String, Object> attributeMap = toAttributeMap(attrs, FileAttributeViewMetadata.BASIC, MemoryFileAttributeView.METADATA);
+        Map<String, Object> attributeMap = toAttributeMap(attrs, VIEWS);
 
         MemoryPath normalizedPath = normalize(path);
         Directory parent = getExistingParentNode(normalizedPath);
@@ -529,7 +533,7 @@ final class MemoryFileStore extends FileStore {
     }
 
     synchronized void createDirectory(MemoryPath dir, FileAttribute<?>... attrs) throws IOException {
-        Map<String, Object> attributeMap = toAttributeMap(attrs, FileAttributeViewMetadata.BASIC, MemoryFileAttributeView.METADATA);
+        Map<String, Object> attributeMap = toAttributeMap(attrs, VIEWS);
 
         MemoryPath normalizedDir = normalize(dir);
         if (normalizedDir.getNameCount() == 0) {
@@ -547,7 +551,7 @@ final class MemoryFileStore extends FileStore {
     }
 
     synchronized void createSymbolicLink(MemoryPath link, MemoryPath target, FileAttribute<?>... attrs) throws IOException {
-        Map<String, Object> attributeMap = toAttributeMap(attrs, FileAttributeViewMetadata.BASIC, MemoryFileAttributeView.METADATA);
+        Map<String, Object> attributeMap = toAttributeMap(attrs, VIEWS);
 
         MemoryPath normalizedLink = normalize(link);
         // don't normalize target, it will be used as-is as the target of the link
@@ -819,8 +823,8 @@ final class MemoryFileStore extends FileStore {
 
     synchronized Map<String, Object> readAttributes(MemoryPath path, String attributes, boolean followLinks) throws IOException {
         String viewName = getViewName(attributes);
-        FileAttributeViewMetadata metadata = getMetadata(viewName);
-        Set<String> attributeNames = getAttributeNames(attributes, metadata);
+        FileAttributeViewMetadata view = VIEWS.getView(viewName);
+        Set<String> attributeNames = getAttributeNames(attributes, view);
 
         MemoryFileAttributes fileAttributes = readAttributes(path, followLinks);
 
@@ -828,28 +832,17 @@ final class MemoryFileStore extends FileStore {
         populateAttributeMap(result, fileAttributes, attributeNames);
         populateAttributeMap(result, READ_ONLY, attributeNames, fileAttributes::isReadOnly);
         populateAttributeMap(result, HIDDEN, attributeNames, fileAttributes::isHidden);
-        return prefixAttributesIfNeeded(result, metadata);
+        return prefixAttributesIfNeeded(result, view);
     }
 
-    private FileAttributeViewMetadata getMetadata(String viewName) {
-        switch (viewName) {
-            case BASIC_VIEW:
-                return FileAttributeViewMetadata.BASIC;
-            case MEMORY_VIEW:
-                return MemoryFileAttributeView.METADATA;
-            default:
-                throw Messages.fileSystemProvider().unsupportedFileAttributeView(viewName);
-        }
-    }
-
-    private Map<String, Object> prefixAttributesIfNeeded(Map<String, Object> attributes, FileAttributeViewMetadata metadata) {
+    private Map<String, Object> prefixAttributesIfNeeded(Map<String, Object> attributes, FileAttributeViewMetadata view) {
         return PREFIX_ATTRIBUTES
-                ? prefixAttributes(attributes, metadata)
+                ? prefixAttributes(attributes, view)
                 : attributes;
     }
 
-    static Map<String, Object> prefixAttributes(Map<String, Object> attributes, FileAttributeViewMetadata metadata) {
-        String prefix = metadata.viewName() + ":"; //$NON-NLS-1$
+    static Map<String, Object> prefixAttributes(Map<String, Object> attributes, FileAttributeViewMetadata view) {
+        String prefix = view.viewName() + ":"; //$NON-NLS-1$
         return attributes.entrySet().stream()
                 .collect(Collectors.toMap(e -> prefix + e.getKey(), Map.Entry::getValue));
     }

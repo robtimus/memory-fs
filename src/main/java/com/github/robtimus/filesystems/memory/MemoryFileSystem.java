@@ -19,8 +19,7 @@ package com.github.robtimus.filesystems.memory;
 
 import static com.github.robtimus.filesystems.SimpleAbstractPath.ROOT_PATH;
 import static com.github.robtimus.filesystems.SimpleAbstractPath.SEPARATOR;
-import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.BASIC_VIEW;
-import static com.github.robtimus.filesystems.memory.MemoryFileAttributeView.MEMORY_VIEW;
+import static com.github.robtimus.filesystems.memory.MemoryFileStore.VIEWS;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -41,9 +40,7 @@ import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -58,9 +55,6 @@ import com.github.robtimus.filesystems.PathMatcherSupport;
  * @author Rob Spoor
  */
 final class MemoryFileSystem extends FileSystem {
-
-    private static final Set<String> SUPPORTED_FILE_ATTRIBUTE_VIEWS = Collections
-            .unmodifiableSet(new HashSet<>(Arrays.asList(BASIC_VIEW, MEMORY_VIEW)));
 
     private final FileSystemProvider provider;
     private final Iterable<Path> rootDirectories;
@@ -111,7 +105,7 @@ final class MemoryFileSystem extends FileSystem {
 
     @Override
     public Set<String> supportedFileAttributeViews() {
-        return SUPPORTED_FILE_ATTRIBUTE_VIEWS;
+        return VIEWS.viewNames();
     }
 
     @Override
