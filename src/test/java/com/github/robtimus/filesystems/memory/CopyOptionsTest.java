@@ -17,7 +17,7 @@
 
 package com.github.robtimus.filesystems.memory;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static com.github.robtimus.junit.support.ThrowableAssertions.assertChainEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -171,7 +171,7 @@ class CopyOptionsTest {
 
         private void testWithUnsupported(CopyOption option) {
             UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> CopyOptions.forCopy(option));
-            assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().unsupportedCopyOption(option), exception);
         }
     }
 
@@ -248,7 +248,7 @@ class CopyOptionsTest {
 
         private void testWithInvalid(CopyOption option) {
             UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> CopyOptions.forMove(option));
-            assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().unsupportedCopyOption(option), exception);
         }
     }
 

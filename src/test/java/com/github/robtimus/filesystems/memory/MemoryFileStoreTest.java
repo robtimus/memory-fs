@@ -17,6 +17,7 @@
 
 package com.github.robtimus.filesystems.memory;
 
+import static com.github.robtimus.junit.support.ThrowableAssertions.assertChainEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -1127,7 +1128,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something"), exception);
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -1151,7 +1152,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedCreateFileAttribute("memory:other"), exception);
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -1175,7 +1176,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something"), exception);
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -1199,7 +1200,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedCreateFileAttribute("memory:other"), exception);
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -1638,7 +1639,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something"), exception);
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -1662,7 +1663,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedCreateFileAttribute("memory:other"), exception);
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -1686,7 +1687,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something"), exception);
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -1710,7 +1711,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.newByteChannel(path, options, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedCreateFileAttribute("memory:other"), exception);
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -1940,7 +1941,7 @@ class MemoryFileStoreTest {
         MemoryPath path = createPath("/foo");
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> provider.createDirectory(path, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something"), exception);
 
         assertNull(root.get("foo"));
     }
@@ -1959,7 +1960,7 @@ class MemoryFileStoreTest {
         MemoryPath path = createPath("/foo");
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> provider.createDirectory(path, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedCreateFileAttribute("memory:other"), exception);
 
         assertNull(root.get("foo"));
     }
@@ -2114,7 +2115,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.createSymbolicLink(link, target, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("something"), exception);
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -2139,7 +2140,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.createSymbolicLink(link, target, attributes));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("memory:other").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedCreateFileAttribute("memory:other"), exception);
 
         assertSame(foo, root.get("foo"));
         assertTrue(foo.isEmpty());
@@ -4054,7 +4055,7 @@ class MemoryFileStoreTest {
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> provider.readAttributes(path, "memory:lastModifiedTime,readOnly,dummy"));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("dummy").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttribute("dummy"), exception);
     }
 
     @Test
@@ -4066,7 +4067,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.readAttributes(path, "dummy:lastModifiedTime"));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("dummy").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("dummy"), exception);
     }
 
     @Test
@@ -4077,7 +4078,7 @@ class MemoryFileStoreTest {
         MemoryPath path = createPath("/foo");
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> provider.readAttributes(path, "zipfs:*"));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("zipfs").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("zipfs"), exception);
     }
 
     // MemoryFileStore.setAttribute
@@ -4171,7 +4172,7 @@ class MemoryFileStoreTest {
         MemoryPath path = createPath("/foo");
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.setAttribute(path, "memory:dummy", true));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("dummy").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttribute("dummy"), exception);
     }
 
     @Test
@@ -4182,7 +4183,7 @@ class MemoryFileStoreTest {
 
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                 () -> provider.setAttribute(path, "zipfs:size", true));
-        assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("zipfs").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("zipfs"), exception);
     }
 
     @Test

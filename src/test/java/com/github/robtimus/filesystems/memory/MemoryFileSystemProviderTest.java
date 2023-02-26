@@ -19,6 +19,7 @@ package com.github.robtimus.filesystems.memory;
 
 import static com.github.robtimus.junit.support.OptionalAssertions.assertIsEmpty;
 import static com.github.robtimus.junit.support.OptionalAssertions.assertIsPresent;
+import static com.github.robtimus.junit.support.ThrowableAssertions.assertChainEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -182,14 +183,14 @@ class MemoryFileSystemProviderTest {
     void testGetPathNoScheme() {
         URI uri = URI.create("/foo/bar");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
-        assertEquals(Messages.uri().notAbsolute(uri).getMessage(), exception.getMessage());
+        assertChainEquals(Messages.uri().notAbsolute(uri), exception);
     }
 
     @Test
     void testGetPathInvalidScheme() {
         URI uri = URI.create("https://www.github.com/");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
-        assertEquals(Messages.uri().invalidScheme(uri, "memory").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.uri().invalidScheme(uri, "memory"), exception);
     }
 
     // MemoryFileSystemProvider.isSameFile
@@ -356,7 +357,7 @@ class MemoryFileSystemProviderTest {
         try {
             UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                     () -> provider.readAttributes(path, DosFileAttributes.class));
-            assertEquals(Messages.fileSystemProvider().unsupportedFileAttributesType(DosFileAttributes.class).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributesType(DosFileAttributes.class), exception);
         } finally {
             Files.delete(path);
         }

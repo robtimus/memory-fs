@@ -17,6 +17,7 @@
 
 package com.github.robtimus.filesystems.memory;
 
+import static com.github.robtimus.junit.support.ThrowableAssertions.assertChainEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -131,7 +132,7 @@ class MemoryFileStoreDirectoryStreamTest {
         try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), entry -> true)) {
             stream.close();
             IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
-            assertEquals(Messages.directoryStream().closed().getMessage(), exception.getMessage());
+            assertChainEquals(Messages.directoryStream().closed(), exception);
         }
     }
 
@@ -140,7 +141,7 @@ class MemoryFileStoreDirectoryStreamTest {
         try (DirectoryStream<Path> stream = fileStore.newDirectoryStream(createPath("/"), entry -> true)) {
             stream.iterator();
             IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
-            assertEquals(Messages.directoryStream().iteratorAlreadyReturned().getMessage(), exception.getMessage());
+            assertChainEquals(Messages.directoryStream().iteratorAlreadyReturned(), exception);
         }
     }
 
