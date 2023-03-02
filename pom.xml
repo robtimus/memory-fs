@@ -62,7 +62,7 @@
   </issueManagement>
 
   <properties>
-    <version.fs-core>2.2-SNAPSHOT</version.fs-core>
+    <version.fs-core>2.2</version.fs-core>
     <version.junit-support>2.2</version.junit-support>
   </properties>
 
