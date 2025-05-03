@@ -1125,11 +1125,10 @@ class MemoryFileSystemProviderTest {
     }
 
     private String randomText() {
-        String newContent = new Random().ints('A', 'Z' + 1)
+        return new Random().ints('A', 'Z' + 1)
                 .limit(100)
                 .mapToObj(c -> Character.toString((char) c))
                 .collect(Collectors.joining());
-        return newContent;
     }
 
     @Test
