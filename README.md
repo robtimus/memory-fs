@@ -11,7 +11,9 @@ The `memory-fs` library provides an in-memory NIO.2 file system. It can be used 
 
 If the in-memory file system library is available on the class path, it will register a [FileSystemProvider](https://docs.oracle.com/javase/8/docs/api/java/nio/file/spi/FileSystemProvider.html) for scheme `memory`. This means that, to create a [Path](https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html) for the in-memory file system, you can simply use [Paths.get](https://docs.oracle.com/javase/8/docs/api/java/nio/file/Paths.html#get-java.net.URI-):
 
-    Path path = Paths.get(URI.create("memory:/foo/bar"));
+```java
+Path path = Paths.get(URI.create("memory:/foo/bar"));
+```
 
 ## Attributes
 
