@@ -29,9 +29,9 @@ import com.github.robtimus.filesystems.Messages;
  */
 final class CopyOptions {
 
-    public final boolean replaceExisting;
-    public final boolean copyAttributes;
-    public final boolean followLinks;
+    final boolean replaceExisting;
+    final boolean copyAttributes;
+    final boolean followLinks;
 
     private CopyOptions(boolean replaceExisting, boolean copyAttributes, boolean followLinks) {
         this.replaceExisting = replaceExisting;
