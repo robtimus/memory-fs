@@ -477,7 +477,6 @@ class MemoryFileStoreFileChannelTest {
         File file = new File();
         file.setContent(content.getBytes());
 
-        @SuppressWarnings("resource")
         SeekableByteChannel channel = file.newFileChannel(true, false, false, null);
         channel.close();
         assertThrows(ClosedChannelException.class, () -> channel.truncate(1));
