@@ -31,7 +31,8 @@ import com.github.robtimus.filesystems.attribute.FileAttributeViewMetadata;
  * Where dynamic access to file attributes is required, the attributes supported by this attribute view are as defined by
  * {@code BasicFileAttributeView}, and in addition, the following attributes are supported:
  * <blockquote>
- * <table border="0" cellspacing="0" cellpadding="3" summary="Table columns">
+ * <table class="striped">
+ *   <caption style="display:none">Table columns</caption>
  *   <tr><th class="colFirst">Name</th><th class="colLast">Type</th></tr>
  *   <tr class="altColor"><td class="colFirst">readOnly</td><td class="colLast">{@link Boolean}</td></tr>
  *   <tr class="rowColor"><td class="colFirst">hidden</td><td class="colLast">{@link Boolean}</td></tr>

@@ -40,7 +40,6 @@ import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -63,9 +62,9 @@ final class MemoryFileSystem extends FileSystem {
 
     MemoryFileSystem(MemoryFileSystemProvider provider, MemoryFileStore fileStore) {
         this.provider = Objects.requireNonNull(provider);
-        this.rootDirectories = Collections.singleton(new MemoryPath(this, ROOT_PATH));
+        this.rootDirectories = Set.of(new MemoryPath(this, ROOT_PATH));
         this.fileStore = Objects.requireNonNull(fileStore);
-        this.fileStores = Collections.singleton(fileStore);
+        this.fileStores = Set.of(fileStore);
     }
 
     @Override

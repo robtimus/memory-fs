@@ -15,8 +15,13 @@
  * limitations under the License.
  */
 
+/**
+ * An in-memory NIO.2 file system
+ *
+ * @provides java.nio.file.spi.FileSystemProvider
+ */
 module com.github.robtimus.filesystems.memory {
-    requires com.github.robtimus.filesystems;
+    requires transitive com.github.robtimus.filesystems;
 
     exports com.github.robtimus.filesystems.memory;
 
