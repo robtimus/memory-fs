@@ -72,7 +72,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 import com.github.robtimus.filesystems.AbstractDirectoryStream;
 import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.attribute.FileAttributeSupport;
@@ -85,11 +84,6 @@ import com.github.robtimus.filesystems.attribute.FileAttributeViewMetadata;
  * @author Rob Spoor
  */
 final class MemoryFileStore extends FileStore {
-
-    // TODO: remove these two and their usages as part of the next major release
-    @SuppressWarnings("nls")
-    private static final String PREFIX_ATTRIBUTES_PROPERTY = MemoryFileStore.class.getPackage().getName() + ".prefixAttributes";
-    private static final boolean PREFIX_ATTRIBUTES = Boolean.getBoolean(PREFIX_ATTRIBUTES_PROPERTY);
 
     static final MemoryFileStore INSTANCE = new MemoryFileStore();
 
@@ -832,19 +826,7 @@ final class MemoryFileStore extends FileStore {
         populateAttributeMap(result, fileAttributes, attributeNames);
         populateAttributeMap(result, READ_ONLY, attributeNames, fileAttributes::isReadOnly);
         populateAttributeMap(result, HIDDEN, attributeNames, fileAttributes::isHidden);
-        return prefixAttributesIfNeeded(result, view);
-    }
-
-    private Map<String, Object> prefixAttributesIfNeeded(Map<String, Object> attributes, FileAttributeViewMetadata view) {
-        return PREFIX_ATTRIBUTES
-                ? prefixAttributes(attributes, view)
-                : attributes;
-    }
-
-    static Map<String, Object> prefixAttributes(Map<String, Object> attributes, FileAttributeViewMetadata view) {
-        String prefix = view.viewName() + ":"; //$NON-NLS-1$
-        return attributes.entrySet().stream()
-                .collect(Collectors.toMap(e -> prefix + e.getKey(), Map.Entry::getValue));
+        return result;
     }
 
     synchronized void setAttribute(MemoryPath path, String attribute, Object value, boolean followLinks) throws IOException {
