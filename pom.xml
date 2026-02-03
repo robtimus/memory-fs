@@ -64,7 +64,7 @@
   <properties>
     <version.java>11</version.java>
 
-    <version.fs-core>2.3</version.fs-core>
+    <version.fs-core>3.0</version.fs-core>
     <version.junit-support>3.1</version.junit-support>
   </properties>
 
